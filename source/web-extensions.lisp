@@ -66,13 +66,18 @@ A list of objects. Does not necessarily have the same order as `files' of the sc
 
 MATCHES, JS, and CSS are all keys of the \"content_scripts\" manifest.json keys:
 https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Content_scripts"
-  (let ((sanitize-mozilla-regex (curry #'str:replace-using '("*." "*"
-                                                             "?" "*"
-                                                             "<all_urls>" "*://*/*"))))
+  (flet ((sanitize-mozilla-regex (pattern)
+           (str:replace-using
+            '("*." "*"
+              "?" "*"
+              "<all_urls>" "*://*/*")
+            pattern))
+         (->list (thing)
+           (coerce thing 'list)))
     (make-instance
      'content-script
-     :match-patterns (mapcar sanitize-mozilla-regex (uiop:ensure-list (gethash "matches" json)))
-     :files (append (uiop:ensure-list (gethash "js" json)) (uiop:ensure-list (gethash "css" json))))))
+     :match-patterns (mapcar #'sanitize-mozilla-regex (->list (gethash "matches" json)))
+     :files (append (->list (gethash "js" json)) (->list (gethash "css" json))))))
 
 
 (defun make-data-url (file &optional mime-type)
@@ -93,18 +98,21 @@ Can have:
 
 JSON is the parsed extension manifest."
   (handler-case
-      (sera:and-let* ((browser-action (gethash "browser_action" json))
-                      (default-icon (gethash "default_icon" browser-action)))
-        (if (stringp default-icon)
-            default-icon
-            (rest (first (sort (append (and (gethash "default_icon" browser-action)
-                                            (alex:hash-table-alist (gethash "default_icon" browser-action)))
-                                       (and (gethash "icons" json)
-                                            (alex:hash-table-alist (gethash "icons" json))))
-                               (lambda (a b)
-                                 (> (abs (- optimal-height a))
-                                    (abs (- optimal-height b))))
-                               :key (compose #'parse-integer #'symbol-name #'first))))))
+      (flet ((first-sort-by-height (list)
+               (rest (elt (sera:sort-new
+                           list (lambda (a b)
+                                  (> (abs (- optimal-height a))
+                                     (abs (- optimal-height b))))
+                           :key (compose #'parse-integer #'first))
+                          0))))
+        (or (sera:and-let* ((browser-action (gethash "browser_action" json))
+                            (default-icon (gethash "default_icon" browser-action)))
+              (if (stringp default-icon)
+                  default-icon
+                  (first-sort-by-height (when (gethash "default_icon" browser-action)
+                                          (alex:hash-table-alist (gethash "default_icon" browser-action))))))
+            (sera:and-let* ((icons (gethash "icons" json)))
+              (first-sort-by-height (alex:hash-table-alist (gethash "icons" json))))))
     (error ()
       (rest (first (and (gethash "icons" json)
                         (alex:hash-table-alist (gethash "icons" json))))))))
@@ -114,7 +122,7 @@ JSON is the parsed extension manifest."
 
 There's no way to pass local resources into web view, that's why we're
 hacking into it with data: URLs and encode icons into base64 there."
-  (let* ((status-buffer-height (nyxt:height (status-buffer (current-window))))
+  (let* ((status-buffer-height (ffi-height (status-buffer (current-window))))
          (padded-height (- status-buffer-height 10))
          (best-icon
            (default-browser-action-icon json padded-height)))
@@ -235,32 +243,34 @@ Value is the loadable URL of that file.")
                    :documentation "Configuration for popup opening on extension icon click.")
    (storage-path nil
                  :type (or null extension-storage-file)
-                 :documentation "Path that the storage API stores data in.")
-   (destructor (lambda (mode)
-                 (dolist (script (content-scripts mode))
-                   (remove-content-script (buffer mode) mode script))))
-   (constructor (lambda (mode)
-                  (dolist (script (content-scripts mode))
-                    (inject-content-script (buffer mode) mode script))
-                  (unless (background-buffer mode)
-                    ;; Need to set it to something to not trigger this in other instances.
-                    (setf (background-buffer mode) t)
-                    (setf (background-buffer mode) (make-background-buffer)))
-                  ;; This is to outsmart WebKit resource loading policy by creating data: URLs.
-                  (setf (extension-files mode)
-                        (alex:alist-hash-table
-                         (mapcar (lambda (file)
-                                   (let ((relative-path
-                                           (str:replace-all
-                                            (namestring (extension-directory mode))
-                                            "" (namestring file))))
-                                     (cons relative-path
-                                           (if (equal (mimes:mime file) "text/html")
-                                               (format nil "file://~a" file)
-                                               (make-data-url file)))))
-                                 (nyxt/mode/file-manager:recursive-directory-elements
-                                  (extension-directory mode))))))))
+                 :documentation "Path that the storage API stores data in."))
   (:toggler-command-p nil))
+
+(defmethod enable ((mode extension) &key)
+  (dolist (script (content-scripts mode))
+    (inject-content-script (buffer mode) mode script))
+  (unless (background-buffer mode)
+    ;; Need to set it to something to not trigger this in other instances.
+    (setf (background-buffer mode) t)
+    (setf (background-buffer mode) (make-background-buffer)))
+  ;; This is to outsmart WebKit resource loading policy by creating data: URLs.
+  (setf (extension-files mode)
+        (alex:alist-hash-table
+         (mapcar (lambda (file)
+                   (let ((relative-path
+                           (str:replace-all
+                            (namestring (extension-directory mode))
+                            "" (namestring file))))
+                     (cons relative-path
+                           (if (equal (mimes:mime file) "text/html")
+                               (format nil "file://~a" file)
+                               (make-data-url file)))))
+                 (nyxt/mode/file-manager:recursive-directory-elements
+                  (extension-directory mode))))))
+
+(defmethod disable ((mode extension) &key)
+  (dolist (script (content-scripts mode))
+    (remove-content-script (buffer mode) mode script)))
 
 (defmethod initialize-instance :after ((mode extension) &key)
   (when (eq 'extension (sera:class-name-of mode))
@@ -379,19 +389,8 @@ DIRECTORY should be the one containing manifest.json file for the extension in q
           (homepage-url ,(j:get "homepage_url" json))
           (browser-action ,(make-browser-action json))
           (permissions (quote ,(j:get "permissions" json)))
-          (content-scripts (list ,@(mapcar #'make-content-script
-                                           (j:get "content_scripts" json))))))
-       (defmethod initialize-instance :after ((extension ,lispy-name) &key)
-         ;; This is to simulate the browser action on-click-popup behavior.
-         (setf (nyxt:glyph extension)
-               (spinneret:with-html-string
-                 (:button :class "button"
-                          :onclick (ps:ps (nyxt/ps:lisp-eval
-                                           (:title "toggle-extension-popup")
-                                           (toggle-extension-popup (sera:class-name-of extension))))
-                          :title (format nil "Open the browser action of ~a" (name extension))
-                          (:raw (setf (default-icon (browser-action extension))
-                                      (encode-browser-action-icon (quote ,json) ,directory))))))))))
+          (content-scripts (list ,@(map 'list #'make-content-script
+                                        (j:get "content_scripts" json)))))))))
 
 (define-internal-scheme "web-extension"
     (lambda (url buffer)
