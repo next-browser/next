@@ -11,7 +11,7 @@
       ("id" . ,(id extension))
       ("installType" . "development")
       ("mayDisable" . t)
-      ("name" . ,(or (name extension) ""))
+      ("name" . ,(or (extension-name extension) ""))
       ("permissions" . ,(nyxt/web-extensions:permissions extension))
       ("version" ,(or (nyxt/web-extensions:version extension) ""))
       ;; TODO: Make those meaningful
@@ -21,7 +21,7 @@
       ("icons" . ,(vector))
       ("offlineEnabled" . nil)
       ("optionsUrl" . "")
-      ("shortName" . ,(or (name extension) ""))
+      ("shortName" . ,(or (extension-name extension) ""))
       ("type" . "extension")
       ("updateUrl" . "")
       ("versionName" . ""))))
@@ -78,12 +78,12 @@
     `(if (ffi-buffer-evaluate-javascript
           (buffer ,extension)
           (ps:ps (ps:instanceof (ps:chain browser ,object ,event) *Object))
-          (name ,extension))
+          (extension-name ,extension))
          (ffi-buffer-evaluate-javascript
           (buffer ,extension)
           (ps:ps (ps:chain browser ,object ,event
                            (run ,@args)))
-          (name ,extension))
+          (extension-name ,extension))
          (log:debug "Event not injected: ~a" (ps:ps (ps:@ ,object ,event))))))
 
 (defmethod tabs-on-activated ((old-buffer buffer) (new-buffer buffer))
@@ -202,7 +202,7 @@ the description of the mechanism that sends the results back."
                                            ("tlsChannelId" . "")
                                            ("frameId" . 0)
                                            ("id" . "")))
-                              ("extensionName" . ,(name extension))))))
+                              ("extensionName" . ,(extension-name extension))))))
                 (lambda (reply)
                   (calispel:! channel (webkit:g-variant-get-maybe-string
                                        (webkit:webkit-user-message-get-parameters reply))))
@@ -249,7 +249,7 @@ the description of the mechanism that sends the results back."
                                            :author
                                            :user)
                                 :all-frames-p (gethash "allFrames" css-data)
-                                :world-name (name extension)
+                                :world-name (extension-name extension)
                                 (if file
                                     (list :base-path
                                           (uiop:merge-pathnames*
@@ -304,7 +304,7 @@ the description of the mechanism that sends the results back."
                     :document-start
                     :document-end)
         :all-frames-p (gethash "allFrames" script-data)
-        :world-name (name extension))))
+        :world-name (extension-name extension))))
     "[]"))
 
 (-> storage-local-get (buffer string) (values string &optional))
@@ -406,7 +406,7 @@ there. `reply-user-message' takes care of sending the response back."
              (cons se1 se2))
            ;;; Only used in "ready" message.
            ;; (extension->cons (extension)
-           ;;   (cons (nyxt/web-extensions::name extension)
+           ;;   (cons (nyxt/web-extensions::extension-name extension)
            ;;         (vector (id extension)
            ;;                 (nyxt/web-extensions::manifest extension)
            ;;                 (or (background-buffer-p (buffer extension))
@@ -425,7 +425,7 @@ there. `reply-user-message' takes care of sending the response back."
         ("management.getSelf"
          (wrap-in-channel
           (j:encode (extension->extension-info (find message-params extensions
-                                                     :key #'name :test #'string=)))))
+                                                     :key #'extension-name :test #'string=)))))
         ("runtime.sendMessage"
          (sera:and-let* ((json (j:decode message-params))
                          (extension-instances

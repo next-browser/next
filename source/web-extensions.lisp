@@ -47,7 +47,7 @@ A list of objects. Does not necessarily have the same order as `files' of the sc
         (push (ffi-buffer-add-user-style
                buffer (make-instance 'nyxt/mode/user-script:user-style
                                      :base-path (merge-extension-path extension file)
-                                     :world-name (name extension)
+                                     :world-name (extension-name extension)
                                      :allow-list (match-patterns script)))
               (user-styles script))
         (push
@@ -56,7 +56,7 @@ A list of objects. Does not necessarily have the same order as `files' of the sc
                                 :code (uiop:read-file-string
                                        (merge-extension-path extension file))
                                 :all-frames-p t
-                                :world-name (name extension)
+                                :world-name (extension-name extension)
                                 :run-at :document-start
                                 :include (match-patterns script)))
          (user-scripts script)))))
@@ -192,9 +192,9 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.
 
 (define-mode extension ()
   "The base mode for any extension to inherit from."
-  ((visible-in-status-p nil)
-   (name (error "Extension should have a name")
-         :type string)
+  ((visible-in-status-p t)
+   (extension-name (error "Extension should have a name")
+                   :type string)
    (version (error "Extension should have a version")
             :type string)
    (manifest nil
@@ -359,7 +359,7 @@ DIRECTORY should be the one containing manifest.json file for the extension in q
     `(progn
        (define-mode ,lispy-name (extension)
          ,(j:get "description" json)
-         ((name ,name)
+         ((extension-name ,name)
           (version ,(j:get "version" json))
           (manifest ,manifest-text)
           ;; This :allocation :class is to ensure that the instances of the same
