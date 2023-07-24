@@ -44,13 +44,14 @@ A list of objects. Does not necessarily have the same order as `files' of the sc
   (remove-content-script buffer extension script)
   (dolist (file (files script))
     (if (equal (pathname-type file) "css")
-        (push (ffi-buffer-add-user-style
-               buffer (make-instance 'nyxt/mode/user-script:user-style
-                                     :base-path (merge-extension-path extension file)
-                                     :world-name (extension-name extension)
-                                     :allow-list (match-patterns script)))
-              (user-styles script))
-        (push
+        (pushnew (ffi-buffer-add-user-style
+                  buffer (make-instance 'nyxt/mode/user-script:user-style
+                                        :base-path (merge-extension-path extension file)
+                                        :world-name (extension-name extension)
+                                        :allow-list (match-patterns script)))
+                 (user-styles script)
+                 :test #'string= :key #'nyxt/mode/user-script:code)
+        (pushnew
          (ffi-buffer-add-user-script
           buffer (make-instance 'nyxt/mode/user-script:user-script
                                 :code (uiop:read-file-string
@@ -59,7 +60,8 @@ A list of objects. Does not necessarily have the same order as `files' of the sc
                                 :world-name (extension-name extension)
                                 :run-at :document-start
                                 :include (match-patterns script)))
-         (user-scripts script)))))
+         (user-scripts script)
+         :test #'string= :key #'nyxt/mode/user-script:code))))
 
 (defun make-content-script (json)
   "Create a Lisp-friendly content script representation of our WebExtension keys.
