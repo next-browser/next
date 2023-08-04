@@ -1696,14 +1696,22 @@ the `active-buffer'."
   (when (context-buffer-p buffer)
     (connect-signal buffer "user-message-received" nil (view message)
       (declare (ignorable view))
-      (g:g-object-ref (g:pointer message))
-      (run-thread
-          "Process user messsage"
-        (nyxt/web-extensions:process-user-message buffer message))
-      (sleep 0.01)
-      (run-thread
-          "Reply user message"
-        (nyxt/web-extensions:reply-user-message buffer message))
+      (run-thread "Resolving browser.test.method"
+       (sleep 0.1)
+       (if (equal "browser.test.method" (webkit:webkit-user-message-name message))
+           (webkit:webkit-user-message-send-reply
+            message
+            (webkit:webkit-user-message-new
+             "browser.test.method"
+             (glib:g-variant-new-string
+              (njson:encode (list (njson:decode (webkit2:g-variant-get-maybe-string
+                                                 (webkit:webkit-user-message-get-parameters message)))
+                                  200)))))
+         (webkit:webkit-user-message-send-reply
+          message
+          (webkit:webkit-user-message-new
+           (webkit:webkit-user-message-get-name message)
+           (cffi:null-pointer)))))
       t)
     (nyxt/web-extensions::tabs-on-created buffer))
   buffer)
