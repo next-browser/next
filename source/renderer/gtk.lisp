@@ -1697,16 +1697,17 @@ the `active-buffer'."
     (connect-signal buffer "user-message-received" nil (view message)
       (declare (ignorable view))
       (run-thread "Resolving browser.test.method"
-       (sleep 0.1)
+        (log:info "Resolving browser.test.method")
+        (sleep 0.1)
        (if (equal "browser.test.method" (webkit:webkit-user-message-name message))
-           (webkit:webkit-user-message-send-reply
-            message
-            (webkit:webkit-user-message-new
-             "browser.test.method"
-             (glib:g-variant-new-string
-              (njson:encode (list (njson:decode (webkit2:g-variant-get-maybe-string
-                                                 (webkit:webkit-user-message-get-parameters message)))
-                                  200)))))
+           (let ((content (njson:encode (sera:dict "result"
+                                                   (list (njson:decode (webkit2:g-variant-get-maybe-string
+                                                                        (webkit:webkit-user-message-get-parameters message)))
+                                                         200)))))
+             (log:info "Sending a reply to ~s content" content)
+             (webkit:webkit-user-message-send-reply
+              message
+              (webkit:webkit-user-message-new "browser.test.method" (glib:g-variant-new-string content))))
          (webkit:webkit-user-message-send-reply
           message
           (webkit:webkit-user-message-new
