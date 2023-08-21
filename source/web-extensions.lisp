@@ -250,6 +250,12 @@ Value is the loadable URL of that file.")
     ;; Need to set it to something to not trigger this in other instances.
     (setf (background-buffer mode) t)
     (setf (background-buffer mode) (make-background-buffer)))
+  ;; Inject extension APIs (browser etc.)
+  (nyxt:ffi-web-extension-send-message
+   (nyxt:current-buffer)
+   (webkit:webkit-user-message-new
+    "addExtension" (glib:g-variant-new-string (or (manifest mode) "")))
+   nil nil)
   ;; This is to outsmart WebKit resource loading policy by creating data: URLs.
   (setf (extension-files mode)
         (alex:alist-hash-table
@@ -267,7 +273,12 @@ Value is the loadable URL of that file.")
 
 (defmethod disable ((mode extension) &key)
   (dolist (script (content-scripts mode))
-    (remove-content-script (buffer mode) mode script)))
+    (remove-content-script (buffer mode) mode script))
+  (nyxt:ffi-web-extension-send-message
+   (nyxt:current-buffer)
+   (webkit:webkit-user-message-new
+    "removeExtension" (glib:g-variant-new-string (or (manifest mode) "")))
+   nil nil))
 
 (defmethod initialize-instance :after ((mode extension) &key)
   (when (eq 'extension (sera:class-name-of mode))
@@ -368,7 +379,7 @@ DIRECTORY should be the one containing manifest.json file for the extension in q
          ,(j:get "description" json)
          ((extension-name ,name)
           (version ,(j:get "version" json))
-          (manifest ,manifest-text)
+          (manifest ,(j:encode json))
           ;; This :allocation :class is to ensure that the instances of the same
           ;; extension class have the same ID, background-buffer, popup-buffer,
           ;; and storage-path and can communicate properly.
