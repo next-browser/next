@@ -51,6 +51,7 @@ A list of objects. Does not necessarily have the same order as `files' of the sc
                                         :include (match-patterns script)))
                  (user-styles script)
                  :test #'string= :key #'nyxt/mode/user-script:code)
+        ;; FIXME: Doesn't apply somewhy?
         (pushnew
          (ffi-buffer-add-user-script
           buffer (make-instance 'nyxt/mode/user-script:user-script
