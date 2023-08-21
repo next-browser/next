@@ -68,17 +68,12 @@ A list of objects. Does not necessarily have the same order as `files' of the sc
 
 MATCHES, JS, and CSS are all keys of the \"content_scripts\" manifest.json keys:
 https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Content_scripts"
-  (flet ((sanitize-mozilla-regex (pattern)
-           (str:replace-using
-            '("*." "*"
-              "?" "*"
-              "<all_urls>" "*://*/*")
-            pattern))
-         (->list (thing)
+  (flet ((->list (thing)
            (coerce thing 'list)))
     (make-instance
      'content-script
-     :match-patterns (mapcar #'sanitize-mozilla-regex (->list (gethash "matches" json)))
+     :match-patterns (map 'list #'(lambda (m) (if (equal "<all_urls>" m) "*://*/*" m))
+                          (gethash "matches" json))
      :files (append (->list (gethash "js" json)) (->list (gethash "css" json))))))
 
 
