@@ -48,7 +48,7 @@ A list of objects. Does not necessarily have the same order as `files' of the sc
                   buffer (make-instance 'nyxt/mode/user-script:user-style
                                         :base-path (merge-extension-path extension file)
                                         :world-name (extension-name extension)
-                                        :allow-list (match-patterns script)))
+                                        :include (match-patterns script)))
                  (user-styles script)
                  :test #'string= :key #'nyxt/mode/user-script:code)
         (pushnew
@@ -58,7 +58,7 @@ A list of objects. Does not necessarily have the same order as `files' of the sc
                                        (merge-extension-path extension file))
                                 :all-frames-p t
                                 :world-name (extension-name extension)
-                                :run-at :document-start
+                                :run-at :document-end
                                 :include (match-patterns script)))
          (user-scripts script)
          :test #'string= :key #'nyxt/mode/user-script:code))))
