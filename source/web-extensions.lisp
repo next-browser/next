@@ -245,18 +245,18 @@ Value is the loadable URL of that file.")
   (:toggler-command-p nil))
 
 (defmethod enable ((mode extension) &key)
-  (dolist (script (content-scripts mode))
-    (inject-content-script (buffer mode) mode script))
-  (unless (background-buffer mode)
-    ;; Need to set it to something to not trigger this in other instances.
-    (setf (background-buffer mode) t)
-    (setf (background-buffer mode) (make-background-buffer)))
   ;; Inject extension APIs (browser etc.)
   (nyxt:ffi-web-extension-send-message
    (nyxt:current-buffer)
    (webkit:webkit-user-message-new
     "addExtension" (glib:g-variant-new-string (or (manifest mode) "")))
    nil nil)
+  (dolist (script (content-scripts mode))
+    (inject-content-script (buffer mode) mode script))
+  (unless (background-buffer mode)
+    ;; Need to set it to something to not trigger this in other instances.
+    (setf (background-buffer mode) t)
+    (setf (background-buffer mode) (make-background-buffer)))
   ;; This is to outsmart WebKit resource loading policy by creating data: URLs.
   (setf (extension-files mode)
         (alex:alist-hash-table
