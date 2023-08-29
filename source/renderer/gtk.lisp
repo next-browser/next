@@ -1697,22 +1697,25 @@ the `active-buffer'."
     (connect-signal buffer "user-message-received" nil (view message)
       (declare (ignorable view))
       (run-thread "Resolving browser.test.method"
-        (log:info "Resolving browser.test.method")
+        (log:info "Resolving browser.test.method with name ~s"
+                  (webkit:webkit-user-message-get-name message))
         (sleep 0.1)
-       (if (equal "browser.test.method" (webkit:webkit-user-message-name message))
-           (let ((content (njson:encode (sera:dict "result"
-                                                   (list (njson:decode (webkit2:g-variant-get-maybe-string
-                                                                        (webkit:webkit-user-message-get-parameters message)))
-                                                         200)))))
-             (log:info "Sending a reply to ~s content" content)
-             (webkit:webkit-user-message-send-reply
-              message
-              (webkit:webkit-user-message-new "browser.test.method" (glib:g-variant-new-string content))))
-         (webkit:webkit-user-message-send-reply
-          message
-          (webkit:webkit-user-message-new
-           (webkit:webkit-user-message-get-name message)
-           (cffi:null-pointer)))))
+        (if (equal "browser.tabs.create" (webkit:webkit-user-message-get-name message))
+            (let* ((props (elt (njson:decode (webkit2:g-variant-get-maybe-string
+                                              (webkit:webkit-user-message-get-parameters message)))
+                               1))
+                   (buffer (make-buffer :url (j:get "url" props)))
+                   (content (njson:encode (sera:dict "url" (url buffer) "id" (id buffer)))))
+              (log:info "Got a browser.tabs.create message with ~s URL" (j:get "url" props))
+              (webkit:webkit-user-message-send-reply
+               message
+               (webkit:webkit-user-message-new
+                "browser.tabs.create" (glib:g-variant-new-string content))))
+            (webkit:webkit-user-message-send-reply
+             message
+             (webkit:webkit-user-message-new
+              (webkit:webkit-user-message-get-name message)
+              (cffi:null-pointer)))))
       t)
     (nyxt/web-extensions::tabs-on-created buffer))
   buffer)
