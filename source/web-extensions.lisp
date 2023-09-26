@@ -382,6 +382,8 @@ DIRECTORY should be the one containing manifest.json file for the extension in q
          ,(j:get "description" json)
          ((extension-name ,name)
           (version ,(j:get "version" json))
+	  ;; Necessary to strip off all the comments from the manifest and
+	  ;; process it into valid standard JSON.
           (manifest ,(j:encode json))
           ;; This :allocation :class is to ensure that the instances of the same
           ;; extension class have the same ID, background-buffer, popup-buffer,
