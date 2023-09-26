@@ -247,7 +247,7 @@ Value is the loadable URL of that file.")
 (defmethod enable ((mode extension) &key)
   ;; Inject extension APIs (browser etc.)
   (nyxt:ffi-web-extension-send-message
-   (nyxt:current-buffer)
+   (buffer mode)
    (webkit:webkit-user-message-new
     "addExtension" (glib:g-variant-new-string (or (manifest mode) "")))
    nil nil)
