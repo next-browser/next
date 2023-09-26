@@ -371,7 +371,9 @@ If the popup already exists, close it."
 (defmacro load-web-extension (lispy-name directory)
   "Make an extension from DIRECTORY accessible as Nyxt mode (under LISPY-NAME).
 DIRECTORY should be the one containing manifest.json file for the extension in question."
-  (let* ((directory (uiop:parse-native-namestring directory))
+  (let* ((directory (if (pathnamep directory)
+			directory
+			(uiop:parse-native-namestring directory)))
          (manifest-text (uiop:read-file-string (uiop:merge-pathnames* "manifest.json" directory)))
          (json (j:decode manifest-text))
          (name (j:get "name" json)))
