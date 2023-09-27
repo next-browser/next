@@ -1696,6 +1696,7 @@ the `active-buffer'."
   (when (context-buffer-p buffer)
     (connect-signal buffer "user-message-received" nil (view message)
       (declare (ignorable view))
+      (g:g-object-ref message)
       (run-thread "Resolving browser.test.method"
         (log:info "Resolving browser.test.method with name ~s"
                   (webkit:webkit-user-message-get-name message))
