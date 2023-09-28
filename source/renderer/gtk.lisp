@@ -1706,7 +1706,7 @@ the `active-buffer'."
                                               (webkit:webkit-user-message-get-parameters message)))
                                0))
                    (buffer (make-buffer :url (j:get "url" props)))
-                   (content (njson:encode (sera:dict "url" (quri:render-uri (url buffer)) "id" (id buffer)))))
+                   (content (njson:encode (sera:dict "result" (sera:dict "url" (quri:render-uri (url buffer)) "id" (id buffer))))))
               (log:info "Got a browser.tabs.create message with ~s URL" (j:get "url" props))
               (webkit:webkit-user-message-send-reply
                message
