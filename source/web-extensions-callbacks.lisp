@@ -149,7 +149,7 @@
                      ;; nil translates to null, we need to pass empty vector instead.
                      (vector))
                  buffer-descriptions))))
-    (j:encode (%tabs-query (j:decode (or query-object "{}"))))))
+    (%tabs-query (j:decode (or query-object "{}")))))
 
 (-> tabs-create ((or null string)) (values string &optional))
 (defun tabs-create (create-properties)
@@ -170,7 +170,7 @@
     (when (or (gethash "active" properties)
               (gethash "selected" properties))
       (set-current-buffer buffer))
-    (j:encode (buffer->tab-description buffer))))
+    (buffer->tab-description buffer)))
 
 (defvar %message-channels% (make-hash-table)
   "A hash-table mapping message pointer addresses to the channels they return values from.
@@ -259,7 +259,7 @@ the description of the mechanism that sends the results back."
     (when style-sheet
       (setf (gethash message-params %style-sheets%)
             style-sheet))
-    "null"))
+    :null))
 
 (-> tabs-remove-css (string) string)
 (defun tabs-remove-css (message-params)
@@ -272,7 +272,7 @@ the description of the mechanism that sends the results back."
          (style-sheet (gethash message-params %style-sheets%)))
     (ffi-buffer-remove-user-style buffer-to-remove style-sheet)
     (remhash message-params %style-sheets%)
-    "null"))
+    :null))
 
 (-> tabs-execute-script (buffer string) string)
 (defun tabs-execute-script (buffer message-params)
@@ -305,7 +305,7 @@ the description of the mechanism that sends the results back."
                     :document-end)
         :all-frames-p (gethash "allFrames" script-data)
         :world-name (extension-name extension))))
-    "[]"))
+    #()))
 
 (-> storage-local-get (buffer string) (values string &optional))
 (defun storage-local-get (buffer message-params)
@@ -319,19 +319,18 @@ the description of the mechanism that sends the results back."
     (let ((data (or (files:content (nyxt/web-extensions:storage-path extension))
                     (make-hash-table))))
       (if (uiop:emptyp keys)
-          "{}"
-          (j:encode
-           (typecase keys
-             (null data)
-             (list (mapcar (lambda (key-value)
-                             (let ((key-value (uiop:ensure-list key-value))
-                                   (value (or (gethash (first key-value) data)
-                                              (rest key-value))))
-                               (when value
-                                 (cons (first key-value) value))))
-                           keys))
-             (string (or (gethash keys data)
-                         (vector)))))))))
+	  (sera:dict)
+	  (typecase keys
+	    (null data)
+	    (list (mapcar (lambda (key-value)
+			    (let ((key-value (uiop:ensure-list key-value))
+				  (value (or (gethash (first key-value) data)
+					     (rest key-value))))
+			      (when value
+				(cons (first key-value) value))))
+			  keys))
+	    (string (or (gethash keys data)
+			(vector))))))))
 
 (-> storage-local-set (buffer string) string)
 (defun storage-local-set (buffer message-params)
@@ -348,7 +347,7 @@ the description of the mechanism that sends the results back."
         (dolist (key-value keys)
           (setf (gethash (first key-value) data)
                 (rest key-value))))))
-  "")
+  :null)
 
 (-> storage-local-remove (buffer string) string)
 (defun storage-local-remove (buffer message-params)
@@ -364,7 +363,7 @@ the description of the mechanism that sends the results back."
       (unless (uiop:emptyp keys)
         (dolist (key keys)
           (remhash key data)))))
-  "")
+  :null)
 
 (-> storage-local-clear (buffer string) string)
 (defun storage-local-clear (buffer message-params)
@@ -380,12 +379,8 @@ the description of the mechanism that sends the results back."
 (export-always 'process-user-message)
 (-> process-user-message (buffer webkit:webkit-user-message) t)
 (defun process-user-message (buffer message)
-  "A dispatcher for all the possible WebKitUserMessage types there can be.
-Uses name of the MESSAGE as the type to dispatch on.
-
-Creates a result channel for almost every message type (with the exception of
-those using `trigger-message') and sends the response of the helper function
-there. `reply-user-message' takes care of sending the response back."
+  "A dispatcher for all the possible WebExtensions-related message types there can be.
+Uses name of the MESSAGE as the type to dispatch on."
   (let* ((message-name (webkit:webkit-user-message-get-name message))
          (message-params (webkit:g-variant-get-maybe-string
                           (webkit:webkit-user-message-get-parameters message)))
@@ -399,6 +394,11 @@ there. `reply-user-message' takes care of sending the response back."
                               %message-channels%)
                      channel)
                (calispel:! channel value)))
+	   (reply (value)
+	     (webkit:webkit-user-message-send-reply
+	      message
+	      (webkit:webkit-user-message-new
+	       message-name (glib:g-variant-new-string (j:encode value)))))
            (cons* (se1 se2 &rest ignore)
              ;; This is useful when conditional reader macro reads in some
              ;; superfluous items.
@@ -423,69 +423,60 @@ there. `reply-user-message' takes care of sending the response back."
         ;;    "injectAPIs" (glib:g-variant-new-string
         ;;                  (j:encode (mapcar #'extension->cons extensions))))))
         ("management.getSelf"
-         (wrap-in-channel
-	  (j:encode (extension->extension-info (find message-params extensions
-						     :key #'extension-name :test #'string=)))))
+	 (reply (extension->extension-info (find message-params extensions
+						 :key #'extension-name :test #'string=))))
         ("runtime.getPlatformInfo"
-         (wrap-in-channel
-          (j:encode
-           (list
-            ;; TODO: This begs for trivial-features.
-            (cons* "os"
-                   #+(or darwin macos macosx)
-                   "mac"
-                   #+bsd
-                   "openbsd"
-                   #+linux
-                   "linux"
-                   "")
-            (cons* "arch"
-                   #+X86-64
-                   "x86-64"
-                   #+(or X86 X86-32)
-                   "x86-32"
-                   "arm")))))
+	 (reply
+	  (list
+	   ;; TODO: This begs for trivial-features.
+	   (cons* "os"
+		  #+(or darwin macos macosx)
+		  "mac"
+		  #+bsd
+		  "openbsd"
+		  #+linux
+		  "linux"
+		  "")
+	   (cons* "arch"
+		  #+X86-64
+		  "x86-64"
+		  #+(or X86 X86-32)
+		  "x86-32"
+		  "arm"))))
         ("runtime.getBrowserInfo"
-         (wrap-in-channel
-          (j:encode
-           (multiple-value-bind (major _ patch)
-               (nyxt::version)
-             (declare (ignore _))
-             `(("name" . "Nyxt")
-               ("vendor" . "Atlas Engineer LLC")
-               ("version" ,(or major ""))
-               ("build" ,(or patch "")))))))
+	 (reply
+	  (multiple-value-bind (major _ patch)
+	      (nyxt::version)
+	    (declare (ignore _))
+	    `(("name" . "Nyxt")
+	      ("vendor" . "Atlas Engineer LLC")
+	      ("version" ,(or major ""))
+	      ("build" ,(or patch ""))))))
         ("storage.local.get"
-         (wrap-in-channel (storage-local-get buffer message-params)))
+         (reply (storage-local-get buffer message-params)))
         ("storage.local.set"
-         (wrap-in-channel (storage-local-set buffer message-params)))
+         (reply (storage-local-set buffer message-params)))
         ("storage.local.remove"
-         (wrap-in-channel (storage-local-remove buffer message-params)))
+         (reply (storage-local-remove buffer message-params)))
         ("storage.local.clear"
-         (wrap-in-channel (storage-local-clear buffer message-params)))
+         (reply (storage-local-clear buffer message-params)))
         ("tabs.query"
-         (wrap-in-channel
-          (tabs-query message-params)))
+         (reply (tabs-query message-params)))
         ("tabs.create"
-         (wrap-in-channel
-          (tabs-create message-params)))
+         (reply (tabs-create message-params)))
         ("tabs.getCurrent"
-         (wrap-in-channel
-          (j:encode (buffer->tab-description buffer))))
+         (reply (buffer->tab-description buffer)))
         ("tabs.print"
-         (wrap-in-channel (nyxt/mode/document:print-buffer)))
+         (nyxt/mode/document:print-buffer)
+	 (reply :null))
         ("tabs.get"
-         (wrap-in-channel
-          (j:encode (buffer->tab-description (nyxt::buffers-get message-params)))))
+	 (reply (buffer->tab-description (nyxt::buffers-get message-params))))
         ("tabs.insertCSS"
-         (wrap-in-channel
-          (tabs-insert-css buffer message-params)))
+         (reply (tabs-insert-css buffer message-params)))
         ("tabs.removeCSS"
-         (wrap-in-channel
-          (tabs-remove-css message-params)))
+         (reply (tabs-remove-css message-params)))
         ("tabs.executeScript"
-         (wrap-in-channel
-          (tabs-execute-script buffer message-params)))))))
+         (reply (tabs-execute-script buffer message-params)))))))
 
 (export-always 'reply-user-message)
 (-> reply-user-message (buffer webkit:webkit-user-message) t)
