@@ -3,7 +3,6 @@
 
 (in-package :nyxt/web-extensions)
 
-(-> extension->extension-info ((or null nyxt/web-extensions:extension)) (values list &optional))
 (defun extension->extension-info (extension)
   (when extension
     `(("description" . ,(or (nyxt/web-extensions:description extension) ""))
@@ -26,7 +25,6 @@
       ("updateUrl" . "")
       ("versionName" . ""))))
 
-(-> buffer->tab-description ((or null buffer)) (values list &optional))
 (defun buffer->tab-description (buffer)
   (when buffer
     `(("active" . ,(if (member buffer (mapcar #'nyxt::active-buffer
@@ -134,7 +132,6 @@
                   ;; FIXME: How do we know if it's closing?
                   is-window-closing false)))))
 
-(-> tabs-query ((or null string)) (values string &optional))
 (defun tabs-query (query-object)
   (flet ((%tabs-query (query-object)
            (let ((buffer-descriptions (mapcar #'buffer->tab-description (buffer-list))))
@@ -151,7 +148,6 @@
                  buffer-descriptions))))
     (%tabs-query (j:decode (or query-object "{}")))))
 
-(-> tabs-create ((or null string)) (values string &optional))
 (defun tabs-create (create-properties)
   (let* ((properties (j:decode (or create-properties "{}")))
          (parent-buffer (when (gethash "openerTabId" properties)
@@ -223,7 +219,6 @@ the description of the mechanism that sends the results back."
 (defvar %style-sheets% (make-hash-table :test #'equal)
   "WebKitUserStyleSheet-s indexed by the JSON describing them.")
 
-(-> tabs-insert-css (buffer string) string)
 (defun tabs-insert-css (buffer message-params)
   (let* ((json (j:decode message-params))
          (css-data (j:get "css" json))
@@ -261,7 +256,6 @@ the description of the mechanism that sends the results back."
             style-sheet))
     :null))
 
-(-> tabs-remove-css (string) string)
 (defun tabs-remove-css (message-params)
   (let* ((json (j:decode message-params))
          (tab-id (j:get "tabId" json))
@@ -274,7 +268,6 @@ the description of the mechanism that sends the results back."
     (remhash message-params %style-sheets%)
     :null))
 
-(-> tabs-execute-script (buffer string) string)
 (defun tabs-execute-script (buffer message-params)
   (let* ((json (j:decode message-params))
          (script-data (j:get "script" json))
@@ -307,7 +300,6 @@ the description of the mechanism that sends the results back."
         :world-name (extension-name extension))))
     #()))
 
-(-> storage-local-get (buffer string) (values string &optional))
 (defun storage-local-get (buffer message-params)
   (let* ((json (j:decode message-params))
          (extension (find (j:get "extensionId" json)
@@ -332,7 +324,6 @@ the description of the mechanism that sends the results back."
 	    (string (or (gethash keys data)
 			(vector))))))))
 
-(-> storage-local-set (buffer string) string)
 (defun storage-local-set (buffer message-params)
   (let* ((json (j:decode message-params))
          (extension (find (j:get "extensionId" json)
@@ -349,7 +340,6 @@ the description of the mechanism that sends the results back."
                 (rest key-value))))))
   :null)
 
-(-> storage-local-remove (buffer string) string)
 (defun storage-local-remove (buffer message-params)
   (let* ((json (j:decode message-params))
          (extension (find (j:get "extensionId" json)
@@ -365,7 +355,6 @@ the description of the mechanism that sends the results back."
           (remhash key data)))))
   :null)
 
-(-> storage-local-clear (buffer string) string)
 (defun storage-local-clear (buffer message-params)
   (let* ((extension (find message-params
                           (sera:filter #'nyxt/web-extensions::extension-p
