@@ -424,26 +424,8 @@ there. `reply-user-message' takes care of sending the response back."
         ;;                  (j:encode (mapcar #'extension->cons extensions))))))
         ("management.getSelf"
          (wrap-in-channel
-          (j:encode (extension->extension-info (find message-params extensions
-                                                     :key #'extension-name :test #'string=)))))
-        ("runtime.sendMessage"
-         (sera:and-let* ((json (j:decode message-params))
-                         (extension-instances
-                          (sera:filter (curry #'string=
-                                              (j:get "extensionId" json))
-                                       extensions
-                                       :key #'id))
-                         (context (webkit:jsc-context-new)))
-           ;; Store a pointer to the message and reply to it later!
-           (if (or (background-buffer-p buffer)
-                   (nyxt::panel-buffer-p buffer))
-               (dolist (instance extension-instances)
-                 (trigger-message (j:get "message" json)
-                                  (buffer instance) instance message))
-               (trigger-message (j:get "message" json)
-                                (background-buffer (first extensions))
-                                (first extensions)
-                                message))))
+	  (j:encode (extension->extension-info (find message-params extensions
+						     :key #'extension-name :test #'string=)))))
         ("runtime.getPlatformInfo"
          (wrap-in-channel
           (j:encode
@@ -495,18 +477,6 @@ there. `reply-user-message' takes care of sending the response back."
         ("tabs.get"
          (wrap-in-channel
           (j:encode (buffer->tab-description (nyxt::buffers-get message-params)))))
-        ("tabs.sendMessage"
-         (let* ((json (j:decode message-params))
-                (id (j:get "tabId" json))
-                (buffer (if (zerop id)
-                            (current-buffer)
-                            (nyxt::buffers-get (format nil "~d" id))))
-                (extension (find (j:get "extensionId" json)
-                                 (sera:filter #'nyxt/web-extensions::extension-p
-                                              (modes buffer))
-                                 :key #'id
-                                 :test #'string-equal)))
-           (trigger-message (j:get "message" json) buffer extension message)))
         ("tabs.insertCSS"
          (wrap-in-channel
           (tabs-insert-css buffer message-params)))
