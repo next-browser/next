@@ -1696,27 +1696,9 @@ the `active-buffer'."
   (when (context-buffer-p buffer)
     (connect-signal buffer "user-message-received" nil (view message)
       (declare (ignorable view))
-      (g:g-object-ref message)
-      (run-thread "Resolving browser.test.method"
-        (log:info "Resolving browser.test.method with name ~s"
-                  (webkit:webkit-user-message-get-name message))
-        (sleep 0.1)
-        (if (equal "browser.tabs.create" (webkit:webkit-user-message-get-name message))
-            (let* ((props (elt (njson:decode (webkit2:g-variant-get-maybe-string
-                                              (webkit:webkit-user-message-get-parameters message)))
-                               0))
-                   (buffer (make-buffer :url (j:get "url" props)))
-                   (content (njson:encode (sera:dict "result" (sera:dict "url" (quri:render-uri (url buffer)) "id" (id buffer))))))
-              (log:info "Got a browser.tabs.create message with ~s URL" (j:get "url" props))
-              (webkit:webkit-user-message-send-reply
-               message
-               (webkit:webkit-user-message-new
-                "browser.tabs.create" (glib:g-variant-new-string content))))
-            (webkit:webkit-user-message-send-reply
-             message
-             (webkit:webkit-user-message-new
-              (webkit:webkit-user-message-get-name message)
-              (cffi:null-pointer)))))
+      (g:g-object-ref (g:pointer message))
+      (run-thread "Resolving browser methods"
+	(nyxt/web-extensions:process-user-message buffer message))
       t)
     (nyxt/web-extensions::tabs-on-created buffer))
   buffer)

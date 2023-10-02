@@ -35,7 +35,7 @@
       ("height" . ,(ffi-height buffer))
       ("width" . ,(ffi-width buffer))
       ("highlighted" . ,(eq buffer (nyxt::active-buffer (current-window))))
-      ("id" . ,(or (parse-integer (id buffer) :junk-allowed t) 0))
+      ("id" . ,(or (id buffer) 0))
       ("incognito" . ,(nosave-buffer-p buffer))
       ("lastAccessed" . ,(* 1000 (time:timestamp-to-unix (nyxt::last-access buffer))))
       ("selected" . ,(eq buffer (nyxt::active-buffer (current-window))))
@@ -373,21 +373,17 @@ Uses name of the MESSAGE as the type to dispatch on."
   (let* ((message-name (webkit:webkit-user-message-get-name message))
          (message-params (webkit:g-variant-get-maybe-string
                           (webkit:webkit-user-message-get-parameters message)))
+	 (params (coerce (j:decode message-params) 'list))
          (extensions (when buffer
                        (sera:filter #'nyxt/web-extensions::extension-p (modes buffer)))))
     (log:debug "Message ~a with ~s parameters received."
                message-name message-params)
-    (flet ((wrap-in-channel (value)
-             (let ((channel (nyxt::make-channel 1)))
-               (setf (gethash (cffi:pointer-address (g:pointer message))
-                              %message-channels%)
-                     channel)
-               (calispel:! channel value)))
-	   (reply (value)
+    (flet ((reply (value)
 	     (webkit:webkit-user-message-send-reply
 	      message
 	      (webkit:webkit-user-message-new
-	       message-name (glib:g-variant-new-string (j:encode value)))))
+	       message-name (glib:g-variant-new-string
+			     (j:encode (sera:dict "result" value))))))
            (cons* (se1 se2 &rest ignore)
              ;; This is useful when conditional reader macro reads in some
              ;; superfluous items.
@@ -419,18 +415,20 @@ Uses name of the MESSAGE as the type to dispatch on."
 	  (list
 	   ;; TODO: This begs for trivial-features.
 	   (cons* "os"
-		  #+(or darwin macos macosx)
+		  #+darwin
 		  "mac"
-		  #+bsd
+		  #+(or openbsd freebsd)
 		  "openbsd"
 		  #+linux
 		  "linux"
-		  "")
+		  #+windows
+		  "win")
 	   (cons* "arch"
 		  #+X86-64
 		  "x86-64"
 		  #+(or X86 X86-32)
 		  "x86-32"
+		  #+(or arm arm64)
 		  "arm"))))
         ("runtime.getBrowserInfo"
 	 (reply
@@ -465,7 +463,9 @@ Uses name of the MESSAGE as the type to dispatch on."
         ("tabs.removeCSS"
          (reply (tabs-remove-css message-params)))
         ("tabs.executeScript"
-         (reply (tabs-execute-script buffer message-params)))))))
+         (reply (tabs-execute-script buffer message-params)))
+	(t
+	 (apply ))))))
 
 (export-always 'reply-user-message)
 (-> reply-user-message (buffer webkit:webkit-user-message) t)
