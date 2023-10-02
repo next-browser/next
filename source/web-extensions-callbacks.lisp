@@ -388,25 +388,8 @@ Uses name of the MESSAGE as the type to dispatch on."
              ;; This is useful when conditional reader macro reads in some
              ;; superfluous items.
              (declare (ignore ignore))
-             (cons se1 se2))
-           ;;; Only used in "ready" message.
-           ;; (extension->cons (extension)
-           ;;   (cons (nyxt/web-extensions::extension-name extension)
-           ;;         (vector (id extension)
-           ;;                 (nyxt/web-extensions::manifest extension)
-           ;;                 (or (background-buffer-p (buffer extension))
-           ;;                     (nyxt::panel-buffer-p (buffer extension)))
-           ;;                 (nyxt/web-extensions::extension-files extension)
-           ;;                 (id (buffer extension)))))
-           )
+             (cons se1 se2)))
       (str:string-case message-name
-        ;;; Commented out due to CPU hogging when enabled.
-        ;; ("ready"
-        ;;  (ffi-web-extension-send-message
-        ;;   buffer
-        ;;   (webkit:webkit-user-message-new
-        ;;    "injectAPIs" (glib:g-variant-new-string
-        ;;                  (j:encode (mapcar #'extension->cons extensions))))))
         ("management.getSelf"
 	 (reply (extension->extension-info (find message-params extensions
 						 :key #'extension-name :test #'string=))))
