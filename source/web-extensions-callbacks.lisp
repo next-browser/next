@@ -383,12 +383,7 @@ Uses name of the MESSAGE as the type to dispatch on."
 	      message
 	      (webkit:webkit-user-message-new
 	       message-name (glib:g-variant-new-string
-			     (j:encode (sera:dict "result" value))))))
-           (cons* (se1 se2 &rest ignore)
-             ;; This is useful when conditional reader macro reads in some
-             ;; superfluous items.
-             (declare (ignore ignore))
-             (cons se1 se2)))
+			     (j:encode (sera:dict "result" value)))))))
       (str:string-case message-name
         ("management.getSelf"
 	 (reply (extension->extension-info (find message-params extensions
