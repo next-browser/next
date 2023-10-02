@@ -397,22 +397,22 @@ Uses name of the MESSAGE as the type to dispatch on."
 	 (reply
 	  (list
 	   ;; TODO: This begs for trivial-features.
-	   (cons* "os"
-		  #+darwin
-		  "mac"
-		  #+(or openbsd freebsd)
-		  "openbsd"
-		  #+linux
-		  "linux"
-		  #+windows
-		  "win")
-	   (cons* "arch"
-		  #+X86-64
-		  "x86-64"
-		  #+(or X86 X86-32)
-		  "x86-32"
-		  #+(or arm arm64)
-		  "arm"))))
+	   (cons "os"
+		 #+darwin
+		 "mac"
+		 #+(or openbsd freebsd)
+		 "openbsd"
+		 #+linux
+		 "linux"
+		 #+windows
+		 "win")
+	   (cons "arch"
+		 #+X86-64
+		 "x86-64"
+		 #+(or X86 X86-32)
+		 "x86-32"
+		 #+(or arm arm64)
+		 "arm"))))
         ("runtime.getBrowserInfo"
 	 (reply
 	  (multiple-value-bind (major _ patch)
