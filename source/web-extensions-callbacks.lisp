@@ -439,9 +439,7 @@ Uses name of the MESSAGE as the type to dispatch on."
         ("tabs.removeCSS"
          (reply (tabs-remove-css message-params)))
         ("tabs.executeScript"
-         (reply (tabs-execute-script buffer message-params)))
-	(t
-	 (apply ))))))
+         (reply (tabs-execute-script buffer message-params)))))))
 
 (export-always 'reply-user-message)
 (-> reply-user-message (buffer webkit:webkit-user-message) t)
