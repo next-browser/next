@@ -43,7 +43,11 @@ Only used to mandate whether the mode needs a toggler command:
   (define-or-undefine-command-for-mode class))
 
 (define-class mode ()
-  ((buffer
+  ((id
+    (new-id)
+    :type unsigned-byte
+    :documentation "Unique identifier for a mode instance.")
+   (buffer
     nil
     :type (maybe null buffer))
    (glyph
