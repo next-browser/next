@@ -391,7 +391,6 @@ Uses name of the MESSAGE as the type to dispatch on."
         ("runtime.getPlatformInfo"
 	 (reply
 	  (list
-	   ;; TODO: This begs for trivial-features.
 	   (cons "os"
 		 #+darwin
 		 "mac"
