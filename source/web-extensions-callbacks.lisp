@@ -148,9 +148,8 @@
                  buffer-descriptions))))
     (%tabs-query (j:decode (or query-object "{}")))))
 
-(defun tabs-create (create-properties)
-  (let* ((properties (j:decode (or create-properties "{}")))
-         (parent-buffer (when (gethash "openerTabId" properties)
+(defun tabs-create (properties)
+  (let* ((parent-buffer (when (gethash "openerTabId" properties)
                           (nyxt::buffers-get
                            (format nil "~d" (gethash "openerTabId" properties)))))
          (url (quri:uri (or (gethash "url" properties)
@@ -427,7 +426,7 @@ Uses name of the MESSAGE as the type to dispatch on."
         ("tabs.query"
          (reply (tabs-query message-params)))
         ("tabs.create"
-         (reply (tabs-create message-params)))
+         (reply (tabs-create (first params))))
         ("tabs.getCurrent"
          (reply (buffer->tab-description buffer)))
         ("tabs.print"
