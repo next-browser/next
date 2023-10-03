@@ -365,7 +365,6 @@ the description of the mechanism that sends the results back."
   "")
 
 (export-always 'process-user-message)
-(-> process-user-message (buffer webkit:webkit-user-message) t)
 (defun process-user-message (buffer message)
   "A dispatcher for all the possible WebExtensions-related message types there can be.
 Uses name of the MESSAGE as the type to dispatch on."
