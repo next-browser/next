@@ -27,44 +27,51 @@
 
 (defun buffer->tab-description (buffer)
   (when buffer
-    `(("active" . ,(if (member buffer (mapcar #'nyxt::active-buffer
-                                              (alex:hash-table-values (nyxt::windows *browser*))))
-                       t nil))
-      #+webkit2-mute
-      ("audible" . ,(not (ffi-muted-p buffer)))
-      ("height" . ,(ffi-height buffer))
-      ("width" . ,(ffi-width buffer))
-      ("highlighted" . ,(eq buffer (nyxt::active-buffer (current-window))))
-      ("id" . ,(or (id buffer) 0))
-      ("incognito" . ,(nosave-buffer-p buffer))
-      ("lastAccessed" . ,(* 1000 (time:timestamp-to-unix (nyxt::last-access buffer))))
-      ("selected" . ,(eq buffer (nyxt::active-buffer (current-window))))
-      ("status" . ,(if (web-buffer-p buffer)
-                       (case (slot-value buffer 'nyxt::status)
-                         ((:finished :failed) "complete")
-                         ((:unloaded :loading) "loading"))
-                       "complete"))
-      ;; TODO: Check "tabs" permission for those two
-      ("title" . ,(title buffer))
-      ("url" . ,(render-url (url buffer)))
-
-      ;; TODO: Make those meaningful:
-      ("attention" . nil)
-      ("autoDiscardable" . nil)
-      ("cookieStoreId" . 0)
-      ("currentWindow" . t)
-      ("discarded" . nil)
-      ("hidden" . nil)
-      ("favIconUrl" . "")
-      ("index" . 0)
-      ("isArticle" . nil)
-      ("isInReaderMode" . nil)
-      ("mutedInfo" . nil)
-      ("openerTabId" . 0)
-      ("pinned" . nil)
-      ("sessionId" . 0)
-      ("successorTabId" . 0)
-      ("windowId" . 0))))
+    ;; FIXME: Previous version searched across all the current buffers of all
+    ;; windows.
+    (let* ((active (sera:true (remove-duplicates (remove nil (mapcar #'current-buffer (window-list))))))
+	   (description
+	     (sera:dict
+	      "active" active
+	      "attention" (and active
+			       (sera:true (nyxt::active-prompt-buffers (current-window))))
+	      "audible" (not (ffi-muted-p buffer))
+	      "height" (ffi-height buffer)
+	      "width" (ffi-width buffer)
+	      "highlighted" active
+	      "id" (id buffer)
+	      "incognito" (nosave-buffer-p buffer)
+	      "lastAccessed" (* 1000.0 (time:timestamp-to-unix (nyxt::last-access buffer)))
+	      "selected" active
+	      "status" (if (network-buffer-p buffer)
+			   (case (slot-value buffer 'nyxt::status)
+			     ((:finished :failed) "complete")
+			     ((:unloaded :loading) "loading"))
+			   "complete")
+	      ;; TODO: Check "tabs" permission for these two
+	      "title"(title buffer)
+	      "url" (render-url (url buffer))
+	      "mutedInfo" (sera:dict "muted" (ffi-muted-p buffer))
+	      "windowId" (id (current-window))
+	      ;; TODO: Make these meaningful:
+	      "autoDiscardable" nil
+	      ;; "cookieStoreId" -1
+	      "currentWindow" t
+	      "discarded" nil
+	      "hidden" (background-buffer-p buffer)
+	      ;; "favIconUrl" ""
+	      "index" 0
+	      "isArticle" nil
+	      "isInReaderMode" nil
+	      ;; "sessionId" -1
+	      ;;"successorTabId" -1
+	      "pinned" nil)))
+      (sera:and-let* ((history (buffer-history buffer))
+		      (owner (htree:owner history (id buffer)))
+		      (parent (htree:owner history (htree:creator-id owner))))
+	(setf (gethash "openerTabId" description)
+	      (htree:creator-id owner)))
+      description)))
 
 (defun all-extensions (&key (buffers (buffer-list)))
   (loop for buffer in buffers
@@ -133,20 +140,23 @@
                   is-window-closing false)))))
 
 (defun tabs-query (query-object)
-  (flet ((%tabs-query (query-object)
-           (let ((buffer-descriptions (mapcar #'buffer->tab-description (buffer-list))))
-             (if query-object
-                 (or (sera:filter (lambda (bd)
-                                    (every #'identity
-                                           (sera:maphash-return
-                                            (lambda (key value)
-                                              (equal value (str:s-assoc-value bd key)))
-                                            query-object)))
-                                  buffer-descriptions)
-                     ;; nil translates to null, we need to pass empty vector instead.
-                     (vector))
-                 buffer-descriptions))))
-    (%tabs-query (j:decode (or query-object "{}")))))
+  (let ((descriptions (mapcar #'buffer->tab-description (buffer-list)))
+	(meaninful-props '("active" "audible" "currentWindow" "hidden" "highlighted" "status" "windowId"
+			   ;; "url" "title" ;; Should be patterns
+			   ;; "autoDiscardable" "cookieStoreId" "discarded"
+			   ;; "muted" "lastFocusedWindow" "pinned" "windowType"
+			   )))
+    (if query-object
+	(loop for prop in meaninful-props
+	      do (setf descriptions
+		       (remove-if (lambda (d)
+				    (and (nth-value 1 (gethash prop d))
+					 (nth-value 1 (gethash prop query-object))
+					 (not (equal (gethash prop d)
+						     (gethash prop query-object)))))
+				  descriptions))
+	      finally (return descriptions))
+	descriptions)))
 
 (defun tabs-create (properties)
   (let* ((parent-buffer (when (gethash "openerTabId" properties)
@@ -423,7 +433,7 @@ Uses name of the MESSAGE as the type to dispatch on."
         ("storage.local.clear"
          (reply (storage-local-clear buffer message-params)))
         ("tabs.query"
-         (reply (tabs-query message-params)))
+         (reply (tabs-query (first params))))
         ("tabs.create"
          (reply (tabs-create (first params))))
         ("tabs.getCurrent"
