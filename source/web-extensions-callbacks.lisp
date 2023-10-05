@@ -58,7 +58,7 @@
 	      ;; "cookieStoreId" -1
 	      "currentWindow" t
 	      "discarded" nil
-	      "hidden" (background-buffer-p buffer)
+	      "hidden" nil
 	      ;; "favIconUrl" ""
 	      "index" 0
 	      "isArticle" nil
