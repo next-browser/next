@@ -374,6 +374,64 @@ the description of the mechanism that sends the results back."
       (clrhash data)))
   "")
 
+(defun %process-user-message (extension name args)
+  "Process the NAMEd message intended for EXTENSION."
+  (str:string-case name
+    ("management.getSelf"
+     (extension->extension-info extension))
+    ("runtime.getPlatformInfo"
+     (list
+      (cons "os"
+	    #+darwin
+	    "mac"
+	    #+(or openbsd freebsd)
+	    "openbsd"
+	    #+linux
+	    "linux"
+	    #+windows
+	    "win")
+      (cons "arch"
+	    #+X86-64
+	    "x86-64"
+	    #+(or X86 X86-32)
+	    "x86-32"
+	    #+(or arm arm64)
+	    "arm")))
+    ("runtime.getBrowserInfo"
+     (multiple-value-bind (major _ patch)
+	 (nyxt::version)
+       (declare (ignore _))
+       `(("name" . "Nyxt")
+	 ("vendor" . "Atlas Engineer LLC")
+	 ("version" ,(or major ""))
+	 ("build" ,(or patch "")))))
+    ;; ("storage.local.get"
+    ;;  (storage-local-get buffer message-params))
+    ;; ("storage.local.set"
+    ;;  (storage-local-set buffer message-params))
+    ;; ("storage.local.remove"
+    ;;  (storage-local-remove buffer message-params))
+    ;; ("storage.local.clear"
+    ;;  (storage-local-clear buffer message-params))
+    ("tabs.query"
+     (tabs-query (first args)))
+    ("tabs.create"
+     (tabs-create (first args)))
+    ("tabs.getCurrent"
+     (buffer->tab-description (buffer extension)))
+    ("tabs.print"
+     (nyxt/mode/document:print-buffer)
+     (reply :null))
+    ("tabs.get"
+     (buffer->tab-description (nyxt::buffers-get (first args))))
+    ;; ("tabs.insertCSS"
+    ;;  (tabs-insert-css buffer message-params))
+    ;; ("tabs.removeCSS"
+    ;;  (reply (tabs-remove-css message-params)))
+    ;; ("tabs.executeScript"
+    ;;  (reply (tabs-execute-script buffer message-params)))
+    ))
+
 (export-always 'process-user-message)
 (defun process-user-message (buffer message)
   "A dispatcher for all the possible WebExtensions-related message types there can be.
@@ -381,74 +439,21 @@ Uses name of the MESSAGE as the type to dispatch on."
   (let* ((message-name (webkit:webkit-user-message-get-name message))
          (message-params (webkit:g-variant-get-maybe-string
                           (webkit:webkit-user-message-get-parameters message)))
-	 (params (coerce (j:decode message-params) 'list))
-         (extensions (when buffer
-                       (sera:filter #'nyxt/web-extensions::extension-p (modes buffer)))))
+	 (params (j:decode message-params))
+	 (extension (find (first (alex:hash-table-keys params))
+			  (sera:filter #'nyxt/web-extensions::extension-p (modes buffer))
+			  :key #'extension-name
+			  :test #'string-equal))
+	 ;; Strip off the extension ID for now.
+	 (args (coerce (first (alex:hash-table-values params)) 'list)))
     (log:debug "Message ~a with ~s parameters received."
                message-name message-params)
-    (flet ((reply (value)
-	     (webkit:webkit-user-message-send-reply
-	      message
-	      (webkit:webkit-user-message-new
-	       message-name (glib:g-variant-new-string
-			     (j:encode (sera:dict "result" value)))))))
-      (str:string-case message-name
-        ("management.getSelf"
-	 (reply (extension->extension-info (find message-params extensions
-						 :key #'extension-name :test #'string=))))
-        ("runtime.getPlatformInfo"
-	 (reply
-	  (list
-	   (cons "os"
-		 #+darwin
-		 "mac"
-		 #+(or openbsd freebsd)
-		 "openbsd"
-		 #+linux
-		 "linux"
-		 #+windows
-		 "win")
-	   (cons "arch"
-		 #+X86-64
-		 "x86-64"
-		 #+(or X86 X86-32)
-		 "x86-32"
-		 #+(or arm arm64)
-		 "arm"))))
-        ("runtime.getBrowserInfo"
-	 (reply
-	  (multiple-value-bind (major _ patch)
-	      (nyxt::version)
-	    (declare (ignore _))
-	    `(("name" . "Nyxt")
-	      ("vendor" . "Atlas Engineer LLC")
-	      ("version" ,(or major ""))
-	      ("build" ,(or patch ""))))))
-        ("storage.local.get"
-         (reply (storage-local-get buffer message-params)))
-        ("storage.local.set"
-         (reply (storage-local-set buffer message-params)))
-        ("storage.local.remove"
-         (reply (storage-local-remove buffer message-params)))
-        ("storage.local.clear"
-         (reply (storage-local-clear buffer message-params)))
-        ("tabs.query"
-         (reply (tabs-query (first params))))
-        ("tabs.create"
-         (reply (tabs-create (first params))))
-        ("tabs.getCurrent"
-         (reply (buffer->tab-description buffer)))
-        ("tabs.print"
-         (nyxt/mode/document:print-buffer)
-	 (reply :null))
-        ("tabs.get"
-	 (reply (buffer->tab-description (nyxt::buffers-get message-params))))
-        ("tabs.insertCSS"
-         (reply (tabs-insert-css buffer message-params)))
-        ("tabs.removeCSS"
-         (reply (tabs-remove-css message-params)))
-        ("tabs.executeScript"
-         (reply (tabs-execute-script buffer message-params)))))))
+    (webkit:webkit-user-message-send-reply
+     message
+     (webkit:webkit-user-message-new
+      message-name (glib:g-variant-new-string
+		    (j:encode (sera:dict "result"
+					 (%process-user-message extension message-name args))))))))
 
 (export-always 'reply-user-message)
 (-> reply-user-message (buffer webkit:webkit-user-message) t)
