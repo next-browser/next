@@ -280,37 +280,35 @@ the description of the mechanism that sends the results back."
     (remhash message-params %style-sheets%)
     :null))
 
-(defun tabs-execute-script (buffer message-params)
-  (let* ((json (j:decode message-params))
-         (script-data (j:get "script" json))
-         (code (j:get "code" script-data))
-         (file (j:get "file" script-data))
-         (tab-id (j:get "tabId" json))
-         (buffer-to-insert (if (zerop tab-id)
-                               (current-buffer)
-                               (or (find (format nil "~d" tab-id) (buffer-list) :key #'id)
-                                   (current-buffer))))
-         (extension (find (j:get "extensionId" json)
-                          (sera:filter #'nyxt/web-extensions::extension-p
-                                       (modes buffer))
-                          :key #'id
-                          :test #'string-equal)))
-    (when (nyxt/web-extensions:tab-apis-enabled-p extension buffer-to-insert)
+(defun tabs-execute-script (extension args)
+  (multiple-value-bind (buffer params)
+      (j:match args
+	(#(a :null)
+	  (values (current-buffer) a))
+	(#(id a)
+	  (values (nyxt::buffers-get id) a)))
+    (j:bind ("code" (code) "file" (file)
+	      "allFrames" (all-frames-p) "frameId" (frame-id)
+	      "runAt" (run-at))
+      params
+      ;; TODO: permissions (once refactored).
       (ffi-buffer-add-user-script
-       buffer-to-insert
+       buffer
        (make-instance
-        'nyxt/mode/user-script:user-script
-        :code (if file
-                  (uiop:read-file-string
-                   (nyxt/web-extensions:merge-extension-path extension file))
-                  code)
-        :run-at (if (and (gethash "runAt" script-data)
-                         (string= (gethash "runAt" script-data) "document_start"))
-                    :document-start
-                    :document-end)
-        :all-frames-p (gethash "allFrames" script-data)
-        :world-name (extension-name extension))))
-    #()))
+	'nyxt/mode/user-script:user-script
+	:code (if file
+		  (uiop:read-file-string
+		   (nyxt/web-extensions:merge-extension-path extension file))
+		  code)
+	:run-at (if (and run-at (string= run-at "document_start"))
+		    :document-start
+		    :document-end)
+	:all-frames-p (or all-frames-p
+			  (and frame-id
+			       (not (zerop frame-id))))
+	:world-name (extension-name extension)))
+      ;; TODO: Collect results somehow?
+      #())))
 
 (defun storage-local-get (buffer message-params)
   (let* ((json (j:decode message-params))
@@ -431,8 +429,8 @@ the description of the mechanism that sends the results back."
     ;;  (tabs-insert-css buffer message-params))
     ;; ("tabs.removeCSS"
     ;;  (reply (tabs-remove-css message-params)))
-    ;; ("tabs.executeScript"
-    ;;  (reply (tabs-execute-script buffer message-params)))
+    ("tabs.executeScript"
+     (tabs-execute-script extension args))
     ))
 
 (export-always 'process-user-message)
