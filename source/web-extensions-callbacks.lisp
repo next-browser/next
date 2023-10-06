@@ -5,25 +5,26 @@
 
 (defun extension->extension-info (extension)
   (when extension
-    `(("description" . ,(or (nyxt/web-extensions:description extension) ""))
-      ("homepageUrl" . ,(or (nyxt/web-extensions:homepage-url extension) ""))
-      ("id" . ,(id extension))
-      ("installType" . "development")
-      ("mayDisable" . t)
-      ("name" . ,(or (extension-name extension) ""))
-      ("permissions" . ,(nyxt/web-extensions:permissions extension))
-      ("version" ,(or (nyxt/web-extensions:version extension) ""))
-      ;; TODO: Make those meaningful
-      ("disabledReason" . "unknown")
-      ("enabled" . t)
-      ("hostPermissions" . ,(vector))
-      ("icons" . ,(vector))
-      ("offlineEnabled" . nil)
-      ("optionsUrl" . "")
-      ("shortName" . ,(or (extension-name extension) ""))
-      ("type" . "extension")
-      ("updateUrl" . "")
-      ("versionName" . ""))))
+    (sera:dict
+     "description" (or (nyxt/web-extensions:description extension) "")
+     "homepageUrl" (or (nyxt/web-extensions:homepage-url extension) "")
+     "id" (id extension)
+     "installType" "development"
+     "mayDisable" t ;; Always.
+     "name" (or (extension-name extension) "")
+     "permissions" (nyxt/web-extensions:permissions extension)
+     "version" (or (nyxt/web-extensions:version extension) "")
+     "enabled" (enabled-p extension)
+     ;; TODO: Make those meaningful.
+     "disabledReason" "unknown"
+     "hostPermissions" (vector)
+     "icons" (vector)
+     "offlineEnabled" nil
+     "optionsUrl" ""
+     "shortName" ""
+     "type" "extension"
+     "updateUrl" ""
+     "versionName" "")))
 
 (defun buffer->tab-description (buffer)
   (when buffer
