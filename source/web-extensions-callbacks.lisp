@@ -29,7 +29,7 @@
   (when buffer
     ;; FIXME: Previous version searched across all the current buffers of all
     ;; windows.
-    (let* ((active (sera:true (remove-duplicates (remove nil (mapcar #'current-buffer (window-list))))))
+    (let* ((active (eq buffer (current-buffer)))
 	   (description
 	     (sera:dict
 	      "active" active
