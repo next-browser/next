@@ -417,16 +417,16 @@ the description of the mechanism that sends the results back."
     ;; ("storage.local.clear"
     ;;  (storage-local-clear buffer message-params))
     ("tabs.query"
-     (tabs-query (first args)))
+     (tabs-query (elt args 0)))
     ("tabs.create"
-     (tabs-create (first args)))
+     (tabs-create (elt args 0)))
     ("tabs.getCurrent"
      (buffer->tab-description (buffer extension)))
     ("tabs.print"
      (nyxt/mode/document:print-buffer)
      (reply :null))
     ("tabs.get"
-     (buffer->tab-description (nyxt::buffers-get (first args))))
+     (buffer->tab-description (nyxt::buffers-get (elt args 0))))
     ;; ("tabs.insertCSS"
     ;;  (tabs-insert-css buffer message-params))
     ;; ("tabs.removeCSS"
@@ -448,7 +448,7 @@ Uses name of the MESSAGE as the type to dispatch on."
 			  :key #'extension-name
 			  :test #'string-equal))
 	 ;; Strip off the extension ID for now.
-	 (args (coerce (first (alex:hash-table-values params)) 'list)))
+	 (args (first (alex:hash-table-values params))))
     (log:debug "Message ~a with ~s parameters received."
                message-name message-params)
     (webkit:webkit-user-message-send-reply
