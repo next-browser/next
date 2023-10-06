@@ -424,7 +424,7 @@ the description of the mechanism that sends the results back."
      (buffer->tab-description (buffer extension)))
     ("tabs.print"
      (nyxt/mode/document:print-buffer)
-     (reply :null))
+     :null)
     ("tabs.get"
      (buffer->tab-description (nyxt::buffers-get (elt args 0))))
     ;; ("tabs.insertCSS"
