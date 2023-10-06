@@ -229,7 +229,7 @@ the description of the mechanism that sends the results back."
   "")
 
 (defvar %style-sheets% (make-hash-table :test #'equal)
-  "WebKitUserStyleSheet-s indexed by the JSON describing them.")
+  "Injected WebKitUserStyleSheet-s indexed by the JSON strings describing them.")
 
 (defun tabs-insert-css (buffer message-params)
   (let* ((json (j:decode message-params))
