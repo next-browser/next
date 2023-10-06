@@ -159,23 +159,26 @@
 	descriptions)))
 
 (defun tabs-create (properties)
-  (let* ((parent-buffer (when (gethash "openerTabId" properties)
-                          (nyxt::buffers-get
-                           (format nil "~d" (gethash "openerTabId" properties)))))
-         (url (quri:uri (or (gethash "url" properties)
-                            "about:blank")))
-         ;; See https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/create
-         (url (if (str:s-member '("chrome" "javascript" "data" "file") (quri:uri-scheme url))
-                  (quri:uri "about:blank")
-                  url))
-         (buffer (make-buffer :url url
-                              :title (or (gethash "title" properties) "")
-                              :load-url-p (gethash "discarded" properties)
-                              :parent-buffer parent-buffer)))
-    (when (or (gethash "active" properties)
-              (gethash "selected" properties))
-      (set-current-buffer buffer))
-    (buffer->tab-description buffer)))
+  (j:bind ("openerTabId" (opener-tab) "url" (url) "title" (title)
+	    "active" (active-p) "selected" (selected-p) "discarded" (discarded-p) "muted" (muted-p))
+    properties
+    (let* ((parent-buffer (when opener-tab
+			    (nyxt::buffers-get opener-tab)))
+	   (url (quri:uri (or url "about:blank")))
+	   ;; See https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/create
+	   (url (if (str:s-member '("chrome" "javascript" "data" "file") (quri:uri-scheme url))
+		    (quri:uri "about:blank")
+		    url))
+	   (buffer (make-buffer :url url
+				:title (or title "")
+				:load-url-p (not discarded-p)
+				:parent-buffer parent-buffer)))
+      ;; FIXME: passing it as `:modes' to `make-buffer' doesn't work...
+      (when muted-p
+	(nyxt/mode/no-sound:no-sound-mode :buffer buffer))
+      (when (or active-p selected-p)
+	(set-current-buffer buffer))
+      (buffer->tab-description buffer))))
 
 (defvar %message-channels% (make-hash-table)
   "A hash-table mapping message pointer addresses to the channels they return values from.
