@@ -381,31 +381,25 @@ the description of the mechanism that sends the results back."
     ("management.getSelf"
      (extension->extension-info extension))
     ("runtime.getPlatformInfo"
-     (list
-      (cons "os"
-	    #+darwin
-	    "mac"
-	    #+(or openbsd freebsd)
-	    "openbsd"
-	    #+linux
-	    "linux"
-	    #+windows
-	    "win")
-      (cons "arch"
-	    #+X86-64
-	    "x86-64"
-	    #+(or X86 X86-32)
-	    "x86-32"
-	    #+(or arm arm64)
-	    "arm")))
+     (sera:dict
+      "os"
+      #+darwin "mac"
+      #+(or openbsd freebsd) "openbsd"
+      #+linux "linux"
+      #+windows "win"
+      "arch"
+      #+X86-64 "x86-64"
+      #+(or X86 X86-32) "x86-32"
+      #+(or arm arm64) "arm"))
     ("runtime.getBrowserInfo"
-     (multiple-value-bind (major _ patch)
+     (multiple-value-bind (major minor patch commit)
 	 (nyxt::version)
-       (declare (ignore _))
-       `(("name" . "Nyxt")
-	 ("vendor" . "Atlas Engineer LLC")
-	 ("version" ,(or major ""))
-	 ("build" ,(or patch "")))))
+       (sera:lret ((info (sera:dict
+			  "name" "Nyxt"
+			  "vendor" "Atlas Engineer LLC"
+			  "version" (format nil "~d.~d.~d" major (or minor 0) (or patch 0)))))
+	 (when commit
+	   (setf (gethash "build" info) commit)))))
     ;; ("storage.local.get"
     ;;  (storage-local-get buffer message-params))
     ;; ("storage.local.set"
