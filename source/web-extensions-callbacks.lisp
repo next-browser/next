@@ -436,12 +436,12 @@ Uses name of the MESSAGE as the type to dispatch on."
          (message-params (webkit:g-variant-get-maybe-string
                           (webkit:webkit-user-message-get-parameters message)))
 	 (params (j:decode message-params))
-	 (extension (find (first (alex:hash-table-keys params))
+	 (extension-name (gethash "extension" params))
+	 (extension (find extension-name
 			  (sera:filter #'nyxt/web-extensions::extension-p (modes buffer))
 			  :key #'extension-name
 			  :test #'string-equal))
-	 ;; Strip off the extension ID for now.
-	 (args (first (alex:hash-table-values params))))
+	 (args (gethash "args" params)))
     (log:debug "Message ~a with ~s parameters received."
                message-name message-params)
     (webkit:webkit-user-message-send-reply
