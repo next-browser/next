@@ -271,10 +271,10 @@ the description of the mechanism that sends the results back."
 (defun tabs-remove-css (args)
   (multiple-value-bind (buffer params)
       (args->buffer+payload args)
-    (let* ((json (j:encode (elt args 0)))
+    (let* ((json (j:encode params))
 	   (style-sheet (gethash json %style-sheets%)))
       (ffi-buffer-remove-user-style buffer style-sheet)
-      (remhash message-params %style-sheets%)
+      (remhash json %style-sheets%)
       :null)))
 
 (defun tabs-execute-script (extension args)
