@@ -267,7 +267,7 @@ the description of the mechanism that sends the results back."
                           (list :code code))))))
 	(setf (gethash (j:encode params) %style-sheets%)
 	      style-sheet)
-	:null))))
+	(values)))))
 
 (defun tabs-remove-css (args)
   (multiple-value-bind (buffer params)
@@ -276,7 +276,7 @@ the description of the mechanism that sends the results back."
 	   (style-sheet (gethash json %style-sheets%)))
       (ffi-buffer-remove-user-style buffer style-sheet)
       (remhash json %style-sheets%)
-      :null)))
+      (values))))
 
 (defun tabs-execute-script (extension args)
   (multiple-value-bind (buffer params)
@@ -414,13 +414,12 @@ the description of the mechanism that sends the results back."
      :null)
     ("tabs.get"
      (buffer->tab-description (nyxt::buffers-get (elt args 0))))
-    ;; ("tabs.insertCSS"
-    ;;  (tabs-insert-css buffer message-params))
-    ;; ("tabs.removeCSS"
-    ;;  (reply (tabs-remove-css message-params)))
+    ("tabs.insertCSS"
+     (tabs-insert-css extension args))
+    ("tabs.removeCSS"
+     (tabs-remove-css args))
     ("tabs.executeScript"
-     (tabs-execute-script extension args))
-    ))
+     (tabs-execute-script extension args))))
 
 (export-always 'process-user-message)
 (defun process-user-message (buffer message)
@@ -442,8 +441,10 @@ Uses name of the MESSAGE as the type to dispatch on."
      message
      (webkit:webkit-user-message-new
       message-name (glib:g-variant-new-string
-		    (j:encode (sera:dict "result"
-					 (%process-user-message extension message-name args))))))))
+		    (j:encode (sera:dict "results"
+					 (coerce (multiple-value-list
+						  (%process-user-message extension message-name args))
+						 'vector))))))))
 
 (export-always 'reply-user-message)
 (-> reply-user-message (buffer webkit:webkit-user-message) t)
