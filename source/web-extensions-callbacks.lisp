@@ -229,65 +229,58 @@ the description of the mechanism that sends the results back."
           result-channel))
   "")
 
+(defun args->buffer+payload (args)
+  (j:match args
+    (#(a :null)
+      (values (current-buffer) a))
+    (#(id a)
+      (values (nyxt::buffers-get id) a))))
+
 (defvar %style-sheets% (make-hash-table :test #'equal)
   "Injected WebKitUserStyleSheet-s indexed by the JSON strings describing them.")
 
-(defun tabs-insert-css (buffer message-params)
-  (let* ((json (j:decode message-params))
-         (css-data (j:get "css" json))
-         (code (j:get "code" css-data))
-         (file (j:get "file" css-data))
-         (level (j:get "cssOrigin" css-data))
-         (tab-id (j:get "tabId" json))
-         (extension (find (j:get "extensionId" json)
-                          (sera:filter #'nyxt/web-extensions::extension-p
-                                       (modes buffer))
-                          :key #'id
-                          :test #'string-equal))
-         (buffer-to-insert (if (zerop tab-id)
-                               (current-buffer)
-                               (or (find (format nil "~d" tab-id) (buffer-list) :key #'id)
-                                   (current-buffer))))
-         (style-sheet (when (nyxt/web-extensions:tab-apis-enabled-p extension buffer-to-insert)
-                        (ffi-buffer-add-user-style
-                         buffer-to-insert
-                         (apply #'make-instance
-                                'nyxt/mode/user-script:user-style
-                                :level (if (not (and level (stringp level) (string= level "user")))
-                                           :author
-                                           :user)
-                                :all-frames-p (gethash "allFrames" css-data)
-                                :world-name (extension-name extension)
-                                (if file
-                                    (list :base-path
-                                          (uiop:merge-pathnames*
-                                           file (nyxt/web-extensions:extension-directory
-                                                 extension)))
-                                    (list :code code)))))))
-    (when style-sheet
-      (setf (gethash message-params %style-sheets%)
-            style-sheet))
-    :null))
+(defun tabs-insert-css (extension args)
+  (multiple-value-bind (buffer params)
+      (args->buffer+payload args)
+    ;; FIXME: frameId, matchAboutBlank, runAt are not supported.
+    (j:bind ("code" (code) "file" (file)
+	      "allFrames" (all-frames-p)
+	      "cssOrigin" (level))
+      (let ((style-sheet
+	      (ffi-buffer-add-user-style
+               buffer
+               (apply #'make-instance
+                      'nyxt/mode/user-script:user-style
+                      :level (if (not (and level
+					   (stringp level)
+					   (string= level "user")))
+                                 :author
+                                 :user)
+                      :all-frames-p all-frames-p
+                      :world-name (extension-name extension)
+                      (if file
+                          (list :base-path
+                                (uiop:merge-pathnames*
+                                 file (nyxt/web-extensions:extension-directory
+                                       extension)))
+                          (list :code code))))))
+	(setf (gethash (j:encode params) %style-sheets%)
+	      style-sheet)
+	:null))))
 
-(defun tabs-remove-css (message-params)
-  (let* ((json (j:decode message-params))
-         (tab-id (j:get "tabId" json))
-         (buffer-to-remove (if (zerop tab-id)
-                               (current-buffer)
-                               (or (find (format nil "~d" tab-id) (buffer-list) :key #'id)
-                                   (current-buffer))))
-         (style-sheet (gethash message-params %style-sheets%)))
-    (ffi-buffer-remove-user-style buffer-to-remove style-sheet)
-    (remhash message-params %style-sheets%)
-    :null))
+(defun tabs-remove-css (args)
+  (multiple-value-bind (buffer params)
+      (args->buffer+payload args)
+    (let* ((json (j:encode (elt args 0)))
+	   (style-sheet (gethash json %style-sheets%)))
+      (ffi-buffer-remove-user-style buffer style-sheet)
+      (remhash message-params %style-sheets%)
+      :null)))
 
 (defun tabs-execute-script (extension args)
   (multiple-value-bind (buffer params)
-      (j:match args
-	(#(a :null)
-	  (values (current-buffer) a))
-	(#(id a)
-	  (values (nyxt::buffers-get id) a)))
+      (args->buffer+payload args)
+    ;; FIXME: Support matchAboutBlank?
     (j:bind ("code" (code) "file" (file)
 	      "allFrames" (all-frames-p) "frameId" (frame-id)
 	      "runAt" (run-at))
