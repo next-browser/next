@@ -246,6 +246,7 @@ the description of the mechanism that sends the results back."
     (j:bind ("code" (code) "file" (file)
 	      "allFrames" (all-frames-p)
 	      "cssOrigin" (level))
+      params
       (let ((style-sheet
 	      (ffi-buffer-add-user-style
                buffer
