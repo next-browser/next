@@ -136,27 +136,24 @@ height=~a/>"
 
 For info on its structure, see
 https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/manifest.json/browser_action"
-  (let* ((browser-action (gethash "browser_action" json))
-         (icons (when browser-action
-                  (gethash "theme_icons" browser-action)))
-         (sorted-icons (when icons
-                         (sort icons
-                               #'> :key (curry #'gethash "size"))))
-         (max-icon (first sorted-icons))
-         (default-icon (default-browser-action-icon json 1000)))
-    (make-instance 'browser-action
-                   :default-popup (when browser-action
-                                    (gethash "default_popup" browser-action))
-                   :default-title (when browser-action
-                                    (gethash "default_title" browser-action))
-                   :default-icon default-icon
-                   :default-dark-icon (when (hash-table-p max-icon)
-                                        (or (gethash "dark" max-icon)
-                                            (gethash "light" max-icon)))
-                   :default-light-icon (when (hash-table-p max-icon)
-                                         (or (gethash "light" max-icon)
-                                             (gethash "dark" max-icon))))))
-
+  (sera:and-let* ((browser-action (gethash "browser_action" json)))
+    (j:bind ("theme_icons" (icons) "default_popup" (popup) "default_title" (title))
+      browser-action
+      (let* ((sorted-icons (unless (uiop:emptyp icons)
+			     (sort (coerce icons 'list)
+				   #'> :key (curry #'gethash "size"))))
+	     (max-icon (first sorted-icons))
+	     (default-icon (default-browser-action-icon json 1000)))
+	(make-instance 'browser-action
+		       :default-popup popup
+		       :default-title title
+		       :default-icon default-icon
+		       :default-dark-icon (when (hash-table-p max-icon)
+					    (or (gethash "dark" max-icon)
+						(gethash "light" max-icon)))
+		       :default-light-icon (when (hash-table-p max-icon)
+					     (or (gethash "light" max-icon)
+						 (gethash "dark" max-icon))))))))
 (define-class browser-action ()
   ((default-popup
     nil
