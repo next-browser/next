@@ -327,7 +327,8 @@ slash. WebExtensions require this :/"
   (spinneret:with-html-string
     (:button :class "button"
              :onclick (ps:ps (nyxt/ps:lisp-eval
-                              (:title "toggle-extension-popup")
+                              (:title "toggle-extension-popup"
+                               :buffer status)
                               (toggle-extension-popup (sera:class-name-of extension))))
              :title (format nil "Open the browser action of ~a" extension)
              (call-next-method))))
