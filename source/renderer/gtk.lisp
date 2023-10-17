@@ -934,6 +934,7 @@ See `gtk-browser's `modifier-translator' slot."
            (webkit:webkit-web-context-set-web-extensions-directory
             context
             (uiop:native-namestring gtk-extensions-path))))))
+    ;; TODO: "user-message-received" signal to dispatch events and messages.
     (gobject:g-signal-connect
      context "download-started"
      (lambda (context download)
