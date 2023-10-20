@@ -143,7 +143,9 @@
 (defun tabs-query (query-object)
   (let ((descriptions (mapcar #'buffer->tab-description (buffer-list)))
         (meaninful-props '("active" "audible" "currentWindow" "hidden" "highlighted" "status" "windowId"
-                           ;; "url" "title" ;; Should be patterns
+                           ;; Should be patterns.
+                           ;; "url" "title"
+                           ;; Not implemented.
                            ;; "autoDiscardable" "cookieStoreId" "discarded"
                            ;; "muted" "lastFocusedWindow" "pinned" "windowType"
                            )))
