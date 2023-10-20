@@ -31,47 +31,47 @@
     ;; FIXME: Previous version searched across all the current buffers of all
     ;; windows.
     (let* ((active (eq buffer (current-buffer)))
-	   (description
-	     (sera:dict
-	      "active" active
-	      "attention" (and active
-			       (sera:true (nyxt::active-prompt-buffers (current-window))))
-	      "audible" (not (ffi-muted-p buffer))
-	      "height" (ffi-height buffer)
-	      "width" (ffi-width buffer)
-	      "highlighted" active
-	      "id" (id buffer)
-	      "incognito" (nosave-buffer-p buffer)
-	      "lastAccessed" (* 1000.0 (time:timestamp-to-unix (nyxt::last-access buffer)))
-	      "selected" active
-	      "status" (if (network-buffer-p buffer)
-			   (case (slot-value buffer 'nyxt::status)
-			     ((:finished :failed) "complete")
-			     ((:unloaded :loading) "loading"))
-			   "complete")
-	      ;; TODO: Check "tabs" permission for these two
-	      "title"(title buffer)
-	      "url" (render-url (url buffer))
-	      "mutedInfo" (sera:dict "muted" (ffi-muted-p buffer))
-	      "windowId" (id (current-window))
-	      ;; TODO: Make these meaningful:
-	      "autoDiscardable" nil
-	      ;; "cookieStoreId" -1
-	      "currentWindow" t
-	      "discarded" nil
-	      "hidden" nil
-	      ;; "favIconUrl" ""
-	      "index" 0
-	      "isArticle" nil
-	      "isInReaderMode" nil
-	      ;; "sessionId" -1
-	      ;;"successorTabId" -1
-	      "pinned" nil)))
+           (description
+             (sera:dict
+              "active" active
+              "attention" (and active
+                               (sera:true (nyxt::active-prompt-buffers (current-window))))
+              "audible" (not (ffi-muted-p buffer))
+              "height" (ffi-height buffer)
+              "width" (ffi-width buffer)
+              "highlighted" active
+              "id" (id buffer)
+              "incognito" (nosave-buffer-p buffer)
+              "lastAccessed" (* 1000.0 (time:timestamp-to-unix (nyxt::last-access buffer)))
+              "selected" active
+              "status" (if (network-buffer-p buffer)
+                           (case (slot-value buffer 'nyxt::status)
+                             ((:finished :failed) "complete")
+                             ((:unloaded :loading) "loading"))
+                           "complete")
+              ;; TODO: Check "tabs" permission for these two
+              "title"(title buffer)
+              "url" (render-url (url buffer))
+              "mutedInfo" (sera:dict "muted" (ffi-muted-p buffer))
+              "windowId" (id (current-window))
+              ;; TODO: Make these meaningful:
+              "autoDiscardable" nil
+              ;; "cookieStoreId" -1
+              "currentWindow" t
+              "discarded" nil
+              "hidden" nil
+              ;; "favIconUrl" ""
+              "index" 0
+              "isArticle" nil
+              "isInReaderMode" nil
+              ;; "sessionId" -1
+              ;;"successorTabId" -1
+              "pinned" nil)))
       (sera:and-let* ((history (buffer-history buffer))
-		      (owner (htree:owner history (id buffer)))
-		      (parent (htree:owner history (htree:creator-id owner))))
-	(setf (gethash "openerTabId" description)
-	      (htree:creator-id owner)))
+                      (owner (htree:owner history (id buffer)))
+                      (parent (htree:owner history (htree:creator-id owner))))
+        (setf (gethash "openerTabId" description)
+              (htree:creator-id owner)))
       description)))
 
 (defun all-extensions (&key (buffers (buffer-list)))
@@ -142,43 +142,43 @@
 
 (defun tabs-query (query-object)
   (let ((descriptions (mapcar #'buffer->tab-description (buffer-list)))
-	(meaninful-props '("active" "audible" "currentWindow" "hidden" "highlighted" "status" "windowId"
-			   ;; "url" "title" ;; Should be patterns
-			   ;; "autoDiscardable" "cookieStoreId" "discarded"
-			   ;; "muted" "lastFocusedWindow" "pinned" "windowType"
-			   )))
+        (meaninful-props '("active" "audible" "currentWindow" "hidden" "highlighted" "status" "windowId"
+                           ;; "url" "title" ;; Should be patterns
+                           ;; "autoDiscardable" "cookieStoreId" "discarded"
+                           ;; "muted" "lastFocusedWindow" "pinned" "windowType"
+                           )))
     (if query-object
-	(loop for prop in meaninful-props
-	      do (setf descriptions
-		       (remove-if (lambda (d)
-				    (and (nth-value 1 (gethash prop d))
-					 (nth-value 1 (gethash prop query-object))
-					 (not (equal (gethash prop d)
-						     (gethash prop query-object)))))
-				  descriptions))
-	      finally (return descriptions))
-	descriptions)))
+        (loop for prop in meaninful-props
+              do (setf descriptions
+                       (remove-if (lambda (d)
+                                    (and (nth-value 1 (gethash prop d))
+                                         (nth-value 1 (gethash prop query-object))
+                                         (not (equal (gethash prop d)
+                                                     (gethash prop query-object)))))
+                                  descriptions))
+              finally (return descriptions))
+        descriptions)))
 
 (defun tabs-create (properties)
   (j:bind ("openerTabId" (opener-tab) "url" (url) "title" (title)
-	    "active" (active-p) "selected" (selected-p) "discarded" (discarded-p) "muted" (muted-p))
+            "active" (active-p) "selected" (selected-p) "discarded" (discarded-p) "muted" (muted-p))
     properties
     (let* ((parent-buffer (when opener-tab
-			    (nyxt::buffers-get opener-tab)))
-	   (url (quri:uri (or url "about:blank")))
-	   ;; See https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/create
-	   (url (if (str:s-member '("chrome" "javascript" "data" "file") (quri:uri-scheme url))
-		    (quri:uri "about:blank")
-		    url))
-	   (buffer (make-buffer :url url
-				:title (or title "")
-				:load-url-p (not discarded-p)
-				:parent-buffer parent-buffer)))
+                            (nyxt::buffers-get opener-tab)))
+           (url (quri:uri (or url "about:blank")))
+           ;; See https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/API/tabs/create
+           (url (if (str:s-member '("chrome" "javascript" "data" "file") (quri:uri-scheme url))
+                    (quri:uri "about:blank")
+                    url))
+           (buffer (make-buffer :url url
+                                :title (or title "")
+                                :load-url-p (not discarded-p)
+                                :parent-buffer parent-buffer)))
       ;; FIXME: passing it as `:modes' to `make-buffer' doesn't work...
       (when muted-p
-	(nyxt/mode/no-sound:no-sound-mode :buffer buffer))
+        (nyxt/mode/no-sound:no-sound-mode :buffer buffer))
       (when (or active-p selected-p)
-	(set-current-buffer buffer))
+        (set-current-buffer buffer))
       (buffer->tab-description buffer))))
 
 (defvar %message-channels% (make-hash-table)
@@ -244,17 +244,17 @@ the description of the mechanism that sends the results back."
       (args->buffer+payload args)
     ;; FIXME: frameId, matchAboutBlank, runAt are not supported.
     (j:bind ("code" (code) "file" (file)
-	      "allFrames" (all-frames-p)
-	      "cssOrigin" (level))
+              "allFrames" (all-frames-p)
+              "cssOrigin" (level))
       params
       (let ((style-sheet
-	      (ffi-buffer-add-user-style
+              (ffi-buffer-add-user-style
                buffer
                (apply #'make-instance
                       'nyxt/mode/user-script:user-style
                       :level (if (not (and level
-					   (stringp level)
-					   (string= level "user")))
+                                           (stringp level)
+                                           (string= level "user")))
                                  :author
                                  :user)
                       :all-frames-p all-frames-p
@@ -265,15 +265,15 @@ the description of the mechanism that sends the results back."
                                  file (nyxt/web-extensions:extension-directory
                                        extension)))
                           (list :code code))))))
-	(setf (gethash (j:encode params) %style-sheets%)
-	      style-sheet)
-	(values)))))
+        (setf (gethash (j:encode params) %style-sheets%)
+              style-sheet)
+        (values)))))
 
 (defun tabs-remove-css (args)
   (multiple-value-bind (buffer params)
       (args->buffer+payload args)
     (let* ((json (j:encode params))
-	   (style-sheet (gethash json %style-sheets%)))
+           (style-sheet (gethash json %style-sheets%)))
       (ffi-buffer-remove-user-style buffer style-sheet)
       (remhash json %style-sheets%)
       (values))))
@@ -283,25 +283,25 @@ the description of the mechanism that sends the results back."
       (args->buffer+payload args)
     ;; FIXME: Support matchAboutBlank?
     (j:bind ("code" (code) "file" (file)
-	      "allFrames" (all-frames-p) "frameId" (frame-id)
-	      "runAt" (run-at))
+              "allFrames" (all-frames-p) "frameId" (frame-id)
+              "runAt" (run-at))
       params
       ;; TODO: permissions (once refactored).
       (ffi-buffer-add-user-script
        buffer
        (make-instance
-	'nyxt/mode/user-script:user-script
-	:code (if file
-		  (uiop:read-file-string
-		   (nyxt/web-extensions:merge-extension-path extension file))
-		  code)
-	:run-at (if (and run-at (string= run-at "document_start"))
-		    :document-start
-		    :document-end)
-	:all-frames-p (or all-frames-p
-			  (and frame-id
-			       (not (zerop frame-id))))
-	:world-name (extension-name extension)))
+        'nyxt/mode/user-script:user-script
+        :code (if file
+                  (uiop:read-file-string
+                   (nyxt/web-extensions:merge-extension-path extension file))
+                  code)
+        :run-at (if (and run-at (string= run-at "document_start"))
+                    :document-start
+                    :document-end)
+        :all-frames-p (or all-frames-p
+                          (and frame-id
+                               (not (zerop frame-id))))
+        :world-name (extension-name extension)))
       ;; TODO: Collect results somehow?
       #())))
 
@@ -316,18 +316,18 @@ the description of the mechanism that sends the results back."
     (let ((data (or (files:content (nyxt/web-extensions:storage-path extension))
                     (make-hash-table))))
       (if (uiop:emptyp keys)
-	  (sera:dict)
-	  (typecase keys
-	    (null data)
-	    (list (mapcar (lambda (key-value)
-			    (let ((key-value (uiop:ensure-list key-value))
-				  (value (or (gethash (first key-value) data)
-					     (rest key-value))))
-			      (when value
-				(cons (first key-value) value))))
-			  keys))
-	    (string (or (gethash keys data)
-			(vector))))))))
+          (sera:dict)
+          (typecase keys
+            (null data)
+            (list (mapcar (lambda (key-value)
+                            (let ((key-value (uiop:ensure-list key-value))
+                                  (value (or (gethash (first key-value) data)
+                                             (rest key-value))))
+                              (when value
+                                (cons (first key-value) value))))
+                          keys))
+            (string (or (gethash keys data)
+                        (vector))))))))
 
 (defun storage-local-set (buffer message-params)
   (let* ((json (j:decode message-params))
@@ -388,13 +388,13 @@ the description of the mechanism that sends the results back."
       #+(or arm arm64) "arm"))
     ("runtime.getBrowserInfo"
      (multiple-value-bind (major minor patch commit)
-	 (nyxt::version)
+         (nyxt::version)
        (sera:lret ((info (sera:dict
-			  "name" "Nyxt"
-			  "vendor" "Atlas Engineer LLC"
-			  "version" (format nil "~d.~d.~d" major (or minor 0) (or patch 0)))))
-	 (when commit
-	   (setf (gethash "build" info) commit)))))
+                          "name" "Nyxt"
+                          "vendor" "Atlas Engineer LLC"
+                          "version" (format nil "~d.~d.~d" major (or minor 0) (or patch 0)))))
+         (when commit
+           (setf (gethash "build" info) commit)))))
     ;; ("storage.local.get"
     ;;  (storage-local-get buffer message-params))
     ;; ("storage.local.set"
@@ -428,23 +428,23 @@ Uses name of the MESSAGE as the type to dispatch on."
   (let* ((message-name (webkit:webkit-user-message-get-name message))
          (message-params (webkit:g-variant-get-maybe-string
                           (webkit:webkit-user-message-get-parameters message)))
-	 (params (j:decode message-params))
-	 (extension-name (gethash "extension" params))
-	 (extension (find extension-name
-			  (sera:filter #'nyxt/web-extensions::extension-p (modes buffer))
-			  :key #'extension-name
-			  :test #'string-equal))
-	 (args (gethash "args" params)))
+         (params (j:decode message-params))
+         (extension-name (gethash "extension" params))
+         (extension (find extension-name
+                          (sera:filter #'nyxt/web-extensions::extension-p (modes buffer))
+                          :key #'extension-name
+                          :test #'string-equal))
+         (args (gethash "args" params)))
     (log:debug "Message ~a with ~s parameters received."
                message-name message-params)
     (webkit:webkit-user-message-send-reply
      message
      (webkit:webkit-user-message-new
       message-name (glib:g-variant-new-string
-		    (j:encode (sera:dict "results"
-					 (coerce (multiple-value-list
-						  (%process-user-message extension message-name args))
-						 'vector))))))))
+                    (j:encode (sera:dict "results"
+                                         (coerce (multiple-value-list
+                                                  (%process-user-message extension message-name args))
+                                                 'vector))))))))
 
 (export-always 'reply-user-message)
 (-> reply-user-message (buffer webkit:webkit-user-message) t)
