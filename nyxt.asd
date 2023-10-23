@@ -406,7 +406,8 @@ The renderer is configured from NYXT_RENDERER or `*nyxt-renderer*'."))
   :pathname #p"NYXT:source;"
   :serial t
   :around-compile "NASDF:FAIL-ON-WARNINGS"
-  :components ((:file "web-extensions")
+  :components ((:file "renderer/package")
+               (:file "web-extensions")
                (:file "web-extensions-callbacks")
                (:file "renderer/gtk-clipboard")
                (:file "renderer/gtk"))

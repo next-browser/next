@@ -1,9 +1,6 @@
 ;;;; SPDX-FileCopyrightText: Atlas Engineer LLC
 ;;;; SPDX-License-Identifier: BSD-3-Clause
 
-(nyxt:define-package :nyxt/web-extensions
-    (:shadow #:background-buffer)
-    (:documentation "WebExtensions API conformance code."))
 (in-package :nyxt/web-extensions)
 
 ;; TODO: We need to allow modifying :nyxt form here, for instance because we
