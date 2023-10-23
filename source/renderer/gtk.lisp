@@ -1183,26 +1183,18 @@ See `finalize-buffer'."
                     url)))
       (cond ((eq load-event :webkit-load-started)
              (setf (nyxt::status buffer) :loading)
-             (nyxt/web-extensions::tabs-on-updated buffer '(("status" . "loading")))
-             (nyxt/web-extensions::tabs-on-updated buffer `(("url" . ,(render-url url))))
              (on-signal-load-started buffer url)
              (unless (internal-url-p url)
                (echo "Loading ~s." (render-url url))))
             ((eq load-event :webkit-load-redirected)
              (setf (url buffer) url)
-             (nyxt/web-extensions::tabs-on-updated buffer '(("status" . "loading")))
-             (nyxt/web-extensions::tabs-on-updated buffer `(("url" . ,(render-url url))))
              (on-signal-load-redirected buffer url))
             ((eq load-event :webkit-load-committed)
-             (nyxt/web-extensions::tabs-on-updated buffer '(("status" . "loading")))
-             (nyxt/web-extensions::tabs-on-updated buffer `(("url" . ,(render-url url))))
              (on-signal-load-committed buffer url))
             ((eq load-event :webkit-load-finished)
              (setf (loading-webkit-history-p buffer) nil)
              (unless (eq (slot-value buffer 'nyxt::status) :failed)
                (setf (nyxt::status buffer) :finished))
-             (nyxt/web-extensions::tabs-on-updated buffer '(("status" . "complete")))
-             (nyxt/web-extensions::tabs-on-updated buffer `(("url" . ,(render-url url))))
              (on-signal-load-finished buffer url)
              (unless (internal-url-p url)
                (echo "Finished loading ~s." (render-url url))))))))
@@ -1248,10 +1240,6 @@ See `finalize-buffer'."
         (gtk:gtk-widget-show (gtk-object buffer)))
       (when focus
         (gtk:gtk-widget-grab-focus (gtk-object buffer))))
-    (nyxt/web-extensions::tabs-on-activated old-buffer buffer)
-    (nyxt/web-extensions::tabs-on-updated buffer `(("attention" . t)))
-    (nyxt/web-extensions::tabs-on-updated
-     old-buffer (alex:alist-hash-table `(("attention" . nil))))
     buffer))
 
 (define-ffi-method ffi-window-add-panel-buffer ((window gtk-window) (buffer panel-buffer) side)
@@ -1489,7 +1477,6 @@ the `active-buffer'."
   (mapc (lambda (handler-id)
           (gobject:g-signal-handler-disconnect (gtk-object buffer) handler-id))
         (handler-ids buffer))
-  (nyxt/web-extensions::tabs-on-removed buffer)
   (nyxt::buffer-hide buffer)
   (gtk:gtk-widget-destroy (gtk-object buffer))
   (setf (gtk-object buffer) nil))
@@ -1561,13 +1548,9 @@ the `active-buffer'."
     (on-signal-load-failed-with-tls-errors buffer certificate (quri:uri failing-url)))
   (connect-signal buffer "notify::uri" nil (web-view param-spec)
     (declare (ignore param-spec))
-    (nyxt/web-extensions::tabs-on-updated
-     buffer `(("url" . ,(webkit:webkit-web-view-uri web-view))))
     (on-signal-notify-uri buffer nil))
   (connect-signal buffer "notify::title" nil (web-view param-spec)
     (declare (ignore  param-spec))
-    (nyxt/web-extensions::tabs-on-updated
-     buffer `(("title" . ,(webkit:webkit-web-view-title web-view))))
     (on-signal-notify-title buffer nil))
   (connect-signal buffer "web-process-terminated" nil (web-view reason)
     ;; TODO: Bind WebKitWebProcessTerminationReason in cl-webkit.
@@ -1700,8 +1683,7 @@ the `active-buffer'."
       (g:g-object-ref (g:pointer message))
       (run-thread "Resolving browser methods"
 	(nyxt/web-extensions:process-user-message buffer message))
-      t)
-    (nyxt/web-extensions::tabs-on-created buffer))
+      t))
   buffer)
 
 (define-ffi-method ffi-buffer-delete ((buffer gtk-buffer))
@@ -1906,8 +1888,6 @@ local anyways, and it's better to refresh it if a load was queried."
   (not (webkit:webkit-web-view-get-is-muted (gtk-object buffer))))
 #+webkit2-mute
 (defmethod (setf ffi-buffer-sound-enabled-p) (value (buffer gtk-buffer))
-  (nyxt/web-extensions::tabs-on-updated
-   buffer (alex:alist-hash-table `(("audible" . ,value))))
   (webkit:webkit-web-view-set-is-muted (gtk-object buffer) (not value)))
 
 ;; KLUDGE: PDF.js in WebKit (actual for version 2.41.4) always saves
