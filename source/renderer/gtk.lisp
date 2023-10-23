@@ -1547,10 +1547,10 @@ the `active-buffer'."
     (on-signal-load-failed buffer (quri:uri failing-url))
     (on-signal-load-failed-with-tls-errors buffer certificate (quri:uri failing-url)))
   (connect-signal buffer "notify::uri" nil (web-view param-spec)
-    (declare (ignore param-spec))
+    (declare (ignorable param-spec web-view))
     (on-signal-notify-uri buffer nil))
   (connect-signal buffer "notify::title" nil (web-view param-spec)
-    (declare (ignore  param-spec))
+    (declare (ignorable param-spec web-view))
     (on-signal-notify-title buffer nil))
   (connect-signal buffer "web-process-terminated" nil (web-view reason)
     ;; TODO: Bind WebKitWebProcessTerminationReason in cl-webkit.
