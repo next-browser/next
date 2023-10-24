@@ -50,7 +50,7 @@
                              ((:unloaded :loading) "loading"))
                            "complete")
               ;; TODO: Check "tabs" permission for these two
-              "title"(title buffer)
+              "title" (title buffer)
               "url" (render-url (url buffer))
               "mutedInfo" (sera:dict "muted" (ffi-muted-p buffer))
               "windowId" (id (current-window))
