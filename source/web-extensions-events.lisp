@@ -24,8 +24,7 @@ listeners."
   (let ((active-info (sera:dict "tabId" (id buffer)
                                 "windowId" (id window)))
         (previous-buffer
-          (first (sort (remove buffer (buffer-list)) #'>
-                       :key #'last-access))))
+          (first (nyxt::sort-by-time (remove buffer (buffer-list))))))
     (when previous-buffer
       (setf (gethash "previousTabId" active-info) (id previous-buffer)))
     (send-event "tabs.onActivated" (list active-info))
