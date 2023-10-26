@@ -19,7 +19,6 @@ listeners."
     (maphash #'send-event-message (uiop:symbol-call :nyxt/renderer/gtk :ephemeral-web-contexts *browser*))
     (maphash #'send-event-message (uiop:symbol-call :nyxt/renderer/gtk :web-contexts *browser*))))
 
-
 ;; For window-set-buffer-hook.
 (defun tabs-on-activated (window buffer)
   (let ((active-info (sera:dict "tabId" (id buffer)
