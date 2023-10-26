@@ -74,7 +74,6 @@ https://developer.mozilla.org/en-US/docs/Mozilla/Add-ons/WebExtensions/Content_s
                           (gethash "matches" json))
      :files (append (->list (gethash "js" json)) (->list (gethash "css" json))))))
 
-
 (defun make-data-url (file &optional mime-type)
   "Create a data: URL with contents taken from FILE.
 Can have:
