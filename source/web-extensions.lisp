@@ -250,6 +250,8 @@ Value is the loadable URL of that file.")
     ;; Need to set it to something to not trigger this in other instances.
     (setf (background-buffer mode) t)
     (setf (background-buffer mode) (make-background-buffer)))
+  (hooks:add-hook (window-set-buffer-hook (current-window))
+                  'tabs-on-activated)
   ;; This is to outsmart WebKit resource loading policy by creating data: URLs.
   (setf (extension-files mode)
         (alex:alist-hash-table
