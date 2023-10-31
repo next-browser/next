@@ -15,6 +15,7 @@ listeners."
              "event" (glib:g-variant-new-string
                       (j:encode (sera:dict "name" name
                                            "args" (coerce args 'vector))))))))
+    (log:debug "Sending the ~s event message with ~s args" name args)
     ;; Feels wrong and hard-coded.
     (maphash #'send-event-message (uiop:symbol-call :nyxt/renderer/gtk :ephemeral-web-contexts *browser*))
     (maphash #'send-event-message (uiop:symbol-call :nyxt/renderer/gtk :web-contexts *browser*))))
