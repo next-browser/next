@@ -366,18 +366,20 @@ the description of the mechanism that sends the results back."
 (defun process-user-message (buffer message)
   "A dispatcher for all the possible WebExtensions-related message types there can be.
 Uses name of the MESSAGE as the type to dispatch on."
-  (let* ((message-name (webkit:webkit-user-message-get-name message))
-         (message-params (webkit:g-variant-get-maybe-string
-                          (webkit:webkit-user-message-get-parameters message)))
-         (params (j:decode message-params))
-         (extension-name (gethash "extension" params))
-         (extension (find extension-name
-                          (sera:filter #'nyxt/web-extensions::extension-p (modes buffer))
-                          :key #'extension-name
-                          :test #'string-equal))
-         (args (gethash "args" params)))
-    (log:debug "Message ~a with ~s parameters received."
-               message-name message-params)
+  (log:debug "Message ~a with ~s parameters received."
+             (webkit:webkit-user-message-get-name message)
+             (webkit:g-variant-get-maybe-string
+              (webkit:webkit-user-message-get-parameters message)))
+  (sera:and-let* ((message-name (webkit:webkit-user-message-get-name message))
+                  (message-params (webkit:g-variant-get-maybe-string
+                                   (webkit:webkit-user-message-get-parameters message)))
+                  (params (j:decode message-params))
+                  (extension-name (gethash "extension" params))
+                  (extension (find extension-name
+                                   (sera:filter #'nyxt/web-extensions::extension-p (modes buffer))
+                                   :key #'extension-name
+                                   :test #'string-equal))
+                  (args (gethash "args" params)))
     (webkit:webkit-user-message-send-reply
      message
      (webkit:webkit-user-message-new
