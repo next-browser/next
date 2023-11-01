@@ -311,6 +311,16 @@ the description of the mechanism that sends the results back."
       (clrhash data)))
   "")
 
+(defun buffer-by-id (args)
+  (if (uiop:emptyp args)
+      (current-buffer)
+      (nyxt::buffers-get (elt args 0))))
+
+(defun wait-on-buffer (buffer)
+  (loop until (member (slot-value buffer 'nyxt::status)
+                      '(:finished :failed))
+        finally (return (values))))
+
 (defun %process-user-message (extension name args)
   "Process the NAMEd message intended for EXTENSION."
   (str:string-case name
@@ -360,7 +370,52 @@ the description of the mechanism that sends the results back."
     ("tabs.removeCSS"
      (tabs-remove-css args))
     ("tabs.executeScript"
-     (tabs-execute-script extension args))))
+     (tabs-execute-script extension args))
+    ("tabs.getZoom"
+     (ffi-buffer-zoom-level (buffer-by-id args)))
+    ("tabs.setZoom"
+     (j:match args
+       (#(factor :null)
+         (setf (ffi-buffer-zoom-level (current-buffer))
+               factor))
+       (#(id factor)
+         (setf (ffi-buffer-zoom-level (buffer-by-id args))
+               factor)))
+     (values))
+    ("tabs.goForward"
+     (nyxt/mode/history:history-forwards-maybe-query
+      (buffer-by-id args))
+     (wait-on-buffer (buffer-by-id args)))
+    ("tabs.goBack"
+     (nyxt/mode/history:history-backwards
+      :buffer (buffer-by-id args))
+     (loop until (member (slot-value (buffer-by-id args) 'nyxt::status)
+                         '(:finished :failed))
+           finally (return (values))))
+    ("tabs.reload"
+     (wait-on-buffer
+      (j:match args
+        (#(id ("bypassCache" bypass))
+          (nyxt/renderer/gtk:force-reload-buffers (nyxt::buffers-get id))
+          (nyxt::buffers-get id))
+        (#(("bypassCache" bypass) :null)
+          (nyxt/renderer/gtk:force-reload-buffers (current-buffer))
+          (current-buffer))
+        (#(id :null)
+          (reload-buffer (if (integerp id)
+                             (nyxt::buffers-get id)
+                             (current-buffer)))))))
+    ("tabs.remove"
+     (let ((ids (elt args 0)))
+       (delete-buffer :buffers
+                      (typecase ids
+                        (integer (nyxt::buffers-get ids))
+                        (array (coerce ids 'list))))
+       (values)))
+    ("tabs.warmup"
+     (wait-on-buffer
+      (reload-buffer (nyxt::buffers-get (elt args 0))))
+     (values))))
 
 (export-always 'process-user-message)
 (defun process-user-message (buffer message)
