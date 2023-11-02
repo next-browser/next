@@ -390,9 +390,7 @@ the description of the mechanism that sends the results back."
     ("tabs.goBack"
      (nyxt/mode/history:history-backwards
       :buffer (buffer-by-id args))
-     (loop until (member (slot-value (buffer-by-id args) 'nyxt::status)
-                         '(:finished :failed))
-           finally (return (values))))
+     (wait-on-buffer (buffer-by-id args)))
     ("tabs.reload"
      (wait-on-buffer
       (j:match args
