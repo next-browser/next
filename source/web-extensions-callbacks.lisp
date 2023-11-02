@@ -355,39 +355,35 @@ the description of the mechanism that sends the results back."
     ;;  (storage-local-remove buffer message-params))
     ;; ("storage.local.clear"
     ;;  (storage-local-clear buffer message-params))
-    ("tabs.query"
-     (tabs-query (elt args 0)))
     ("tabs.create"
      (tabs-create (elt args 0)))
+    ;; Needs a smarter way to get buffer language.
+    ("tabs.detectLanguage" "und")
+    ;; Need tab offloading to work properly.
+    ("tabs.discard" (values))
     ("tabs.duplicate"
      (buffer->tab-description
       ;; TODO: duplicateProperties.active.
       (duplicate-buffer
        :parent-buffer (nyxt::buffers-get (elt args 0)))))
-    ("tabs.getCurrent"
-     (buffer->tab-description (buffer extension)))
-    ("tabs.print"
-     (nyxt/mode/document:print-buffer)
-     :null)
-    ("tabs.get"
-     (buffer->tab-description (nyxt::buffers-get (elt args 0))))
-    ("tabs.insertCSS"
-     (tabs-insert-css extension args))
-    ("tabs.removeCSS"
-     (tabs-remove-css args))
     ("tabs.executeScript"
      (tabs-execute-script extension args))
+    ("tabs.get"
+     (buffer->tab-description (nyxt::buffers-get (elt args 0))))
+    ("tabs.getAllInWindow"
+     (tabs-query (sera:dict "currentwindow" t)))
+    ("tabs.getCurrent"
+     (buffer->tab-description (buffer extension)))
+    ("tabs.getSelected"
+     (first (tabs-query (sera:dict "active" t))))
     ("tabs.getZoom"
      (current-zoom-ratio (buffer-by-id args)))
-    ("tabs.setZoom"
-     (j:match args
-       (#(factor :null)
-         (setf (current-zoom-ratio (current-buffer))
-               factor))
-       (#(id factor)
-         (setf (ffi-buffer-zoom-level (buffer-by-id args))
-               factor)))
-     (values))
+    ("tabs.getZoomSettings"
+     (let ((buffer (buffer-by-id args)))
+       (sera:dict "default" (zoom-ratio-default buffer)
+                  "mode" "automatic"
+                  ;; Need to support page setting persistence.
+                  "scope" "per-page")))
     ("tabs.goForward"
      (nyxt/mode/history:history-forwards-maybe-query
       (buffer-by-id args))
@@ -396,6 +392,13 @@ the description of the mechanism that sends the results back."
      (nyxt/mode/history:history-backwards
       :buffer (buffer-by-id args))
      (wait-on-buffer (buffer-by-id args)))
+    ("tabs.insertCSS"
+     (tabs-insert-css extension args))
+    ("tabs.print"
+     (nyxt/mode/document:print-buffer)
+     :null)
+    ("tabs.query"
+     (tabs-query (elt args 0)))
     ("tabs.reload"
      (wait-on-buffer
       (j:match args
@@ -418,9 +421,17 @@ the description of the mechanism that sends the results back."
                         (integer (nyxt::buffers-get ids))
                         (array (coerce ids 'list))))
        (values)))
-    ;; Need tab offloading to work properly.
-    ("tabs.discard" (values))
-    ("tabs.warmup" (values))
+    ("tabs.removeCSS"
+     (tabs-remove-css args))
+    ("tabs.setZoom"
+     (j:match args
+       (#(factor :null)
+         (setf (current-zoom-ratio (current-buffer))
+               factor))
+       (#(id factor)
+         (setf (ffi-buffer-zoom-level (buffer-by-id args))
+               factor)))
+     (values))
     (t
      (values))))
 
