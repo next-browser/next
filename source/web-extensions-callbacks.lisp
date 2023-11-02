@@ -395,10 +395,12 @@ the description of the mechanism that sends the results back."
      (wait-on-buffer
       (j:match args
         (#(id ("bypassCache" bypass))
-          (nyxt/renderer/gtk:force-reload-buffers (nyxt::buffers-get id))
+          (uiop:symbol-call :nyxt/renderer/gtk :force-reload-buffers
+                            (nyxt::buffers-get id))
           (nyxt::buffers-get id))
         (#(("bypassCache" bypass) :null)
-          (nyxt/renderer/gtk:force-reload-buffers (current-buffer))
+          (uiop:symbol-call :nyxt/renderer/gtk :force-reload-buffers
+                            (current-buffer))
           (current-buffer))
         (#(id :null)
           (reload-buffer (if (integerp id)
