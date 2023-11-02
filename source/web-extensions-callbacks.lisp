@@ -373,11 +373,11 @@ the description of the mechanism that sends the results back."
     ("tabs.executeScript"
      (tabs-execute-script extension args))
     ("tabs.getZoom"
-     (ffi-buffer-zoom-level (buffer-by-id args)))
+     (current-zoom-ratio (buffer-by-id args)))
     ("tabs.setZoom"
      (j:match args
        (#(factor :null)
-         (setf (ffi-buffer-zoom-level (current-buffer))
+         (setf (current-zoom-ratio (current-buffer))
                factor))
        (#(id factor)
          (setf (ffi-buffer-zoom-level (buffer-by-id args))
