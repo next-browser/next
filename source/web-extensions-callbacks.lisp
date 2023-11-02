@@ -413,10 +413,9 @@ the description of the mechanism that sends the results back."
                         (integer (nyxt::buffers-get ids))
                         (array (coerce ids 'list))))
        (values)))
-    ("tabs.warmup"
-     (wait-on-buffer
-      (reload-buffer (nyxt::buffers-get (elt args 0))))
-     (values))
+    ;; Need tab offloading to work properly.
+    ("tabs.discard" (values))
+    ("tabs.warmup" (values))
     (t
      (values))))
 
