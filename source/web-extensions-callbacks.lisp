@@ -416,6 +416,8 @@ the description of the mechanism that sends the results back."
     ("tabs.warmup"
      (wait-on-buffer
       (reload-buffer (nyxt::buffers-get (elt args 0))))
+     (values))
+    (t
      (values))))
 
 (export-always 'process-user-message)
