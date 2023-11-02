@@ -359,6 +359,11 @@ the description of the mechanism that sends the results back."
      (tabs-query (elt args 0)))
     ("tabs.create"
      (tabs-create (elt args 0)))
+    ("tabs.duplicate"
+     (buffer->tab-description
+      ;; TODO: duplicateProperties.active.
+      (duplicate-buffer
+       :parent-buffer (nyxt::buffers-get (elt args 0)))))
     ("tabs.getCurrent"
      (buffer->tab-description (buffer extension)))
     ("tabs.print"
