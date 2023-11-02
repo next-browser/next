@@ -324,7 +324,7 @@ the description of the mechanism that sends the results back."
 
 (defun %process-user-message (extension name args)
   "Process the NAMEd message intended for EXTENSION."
-  (str:string-case name
+  (sera:string-case name
     ("management.getSelf"
      (extension->extension-info extension))
     ("runtime.getPlatformInfo"
