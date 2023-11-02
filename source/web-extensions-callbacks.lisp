@@ -312,7 +312,8 @@ the description of the mechanism that sends the results back."
   "")
 
 (defun buffer-by-id (args)
-  (if (uiop:emptyp args)
+  (if (or (uiop:emptyp args)
+          (every (sera:eqs :null) args))
       (current-buffer)
       (nyxt::buffers-get (elt args 0))))
 
