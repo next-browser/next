@@ -443,24 +443,32 @@ Uses name of the MESSAGE as the type to dispatch on."
              (webkit:webkit-user-message-get-name message)
              (webkit:g-variant-get-maybe-string
               (webkit:webkit-user-message-get-parameters message)))
-  (sera:and-let* ((message-name (webkit:webkit-user-message-get-name message))
-                  (message-params (webkit:g-variant-get-maybe-string
-                                   (webkit:webkit-user-message-get-parameters message)))
-                  (params (j:decode message-params))
-                  (extension-name (gethash "extension" params))
-                  (extension (find extension-name
-                                   (sera:filter #'nyxt/web-extensions::extension-p (modes buffer))
-                                   :key #'extension-name
-                                   :test #'string-equal))
-                  (args (gethash "args" params)))
-    (webkit:webkit-user-message-send-reply
-     message
-     (webkit:webkit-user-message-new
-      message-name (glib:g-variant-new-string
-                    (j:encode (sera:dict "results"
-                                         (coerce (multiple-value-list
-                                                  (%process-user-message extension message-name args))
-                                                 'vector))))))))
+  (or (sera:and-let* ((message-name (webkit:webkit-user-message-get-name message))
+                      (message-params (webkit:g-variant-get-maybe-string
+                                       (webkit:webkit-user-message-get-parameters message)))
+                      (params (j:decode message-params))
+                      (extension-name (gethash "extension" params))
+                      (extension (find extension-name
+                                       (sera:filter #'nyxt/web-extensions::extension-p (modes buffer))
+                                       :key #'extension-name
+                                       :test #'string-equal))
+                      (args (gethash "args" params)))
+        (webkit:webkit-user-message-send-reply
+         message
+         (webkit:webkit-user-message-new
+          message-name (glib:g-variant-new-string
+                        (j:encode (sera:dict "results"
+                                             (coerce (multiple-value-list
+                                                      (%process-user-message extension message-name args))
+                                                     'vector)))))))
+      ;; Malformed message, respond with error. Not really the best solution
+      ;; when there are other extensions loaded, but let it be for now.
+      (webkit:webkit-user-message-send-reply
+       message
+       (webkit:webkit-user-message-new
+        (webkit:webkit-user-message-get-name message)
+        (glib:g-variant-new-string
+         (j:encode (sera:dict "error" "Message malformed")))))))
 
 (export-always 'reply-user-message)
 (-> reply-user-message (buffer webkit:webkit-user-message) t)
