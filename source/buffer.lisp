@@ -666,11 +666,6 @@ Example:
   (reduce #'hooks:add-hook
           '(old-reddit-handler auto-proxy-handler)
           :initial-value (request-resource-hook buffer)))")
-   (proxy
-    nil
-    :accessor nil
-    :type (or proxy null)
-    :documentation "Proxy for buffer.")
    (certificate-exceptions
     '()
     :type (list-of string)

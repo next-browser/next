@@ -279,10 +279,6 @@ Note that by changing the default value, modifier keys can be remapped."))
 ;; TODO Support download-mode.
 ;; (defmethod ffi-buffer-download ((buffer electron-buffer) url))
 
-;; TODO Support proxy-mode.
-;; (defmethod ffi-buffer-proxy ((buffer electron-buffer)))
-;; (defmethod (setf ffi-buffer-proxy) (value (buffer electron-buffer)))
-
 ;; TODO Support user-script mode.
 ;; (defmethod ffi-buffer-add-user-style ((buffer electron-buffer) style))
 ;; (defmethod ffi-buffer-remove-user-style ((buffer electron-buffer) style))

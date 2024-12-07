@@ -96,8 +96,6 @@ Note that by changing the default value, modifier keys can be remapped.")
     :documentation "Store all GObject signal handler IDs so that we can
 disconnect the signal handler when the object is finalized.
 See https://developer.gnome.org/gobject/stable/gobject-Signals.html#signal-memory-management.")
-   (gtk-proxy-url (quri:uri ""))
-   (proxy-ignored-hosts '())
    (loading-renderer-history-p
     nil
     :type boolean
@@ -1647,42 +1645,6 @@ local anyways, and it's better to refresh it if a load was queried."
 (define-ffi-method (setf ffi-buffer-user-agent) (value (buffer gtk-buffer))
   (when-let ((settings (webkit:webkit-web-view-get-settings (gtk-object buffer))))
     (setf (webkit:webkit-settings-user-agent settings) value)))
-
-(define-ffi-method ffi-buffer-proxy ((buffer gtk-buffer))
-  "Return the proxy URL and list of ignored hosts (a list of strings) as second value."
-  (the (values (or quri:uri null) (list-of string))
-       (values (gtk-proxy-url buffer)
-               (proxy-ignored-hosts buffer))))
-(define-ffi-method (setf ffi-buffer-proxy) (proxy-specifier (buffer gtk-buffer))
-  "Redirect network connections of BUFFER to proxy server PROXY-URL.
-Hosts in IGNORE-HOSTS (a list of strings) ignore the proxy.
-For the user-level interface, see `proxy-mode'.
-
-PROXY-SPECIFIER is either a PROXY-URL or a pair of (PROXY-URL IGNORE-HOSTS).
-
-Note: WebKit supports three proxy 'modes': default (the system proxy),
-custom (the specified proxy) and none."
-  (let ((proxy-url (first (alex:ensure-list proxy-specifier)))
-        (ignore-hosts (or (second (alex:ensure-list proxy-specifier))
-                          nil)))
-    (declare (type quri:uri proxy-url))
-    (setf (gtk-proxy-url buffer) proxy-url)
-    (setf (proxy-ignored-hosts buffer) ignore-hosts)
-    (let* ((context (webkit:webkit-web-view-web-context (gtk-object buffer)))
-           (settings (cffi:null-pointer))
-           (mode :webkit-network-proxy-mode-no-proxy)
-           (ignore-hosts (cffi:foreign-alloc :string
-                                             :initial-contents ignore-hosts
-                                             :null-terminated-p t)))
-      (unless (url-empty-p proxy-url)
-        (setf mode :webkit-network-proxy-mode-custom)
-        (setf settings
-              (webkit:webkit-network-proxy-settings-new (render-url proxy-url)
-                                                        ignore-hosts)))
-      (cffi:foreign-free ignore-hosts)
-      (webkit:webkit-web-context-set-network-proxy-settings context
-                                                            mode
-                                                            settings))))
 
 (define-ffi-method ffi-buffer-zoom-level ((buffer gtk-buffer))
   (webkit:webkit-web-view-zoom-level (gtk-object buffer)))

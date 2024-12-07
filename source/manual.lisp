@@ -235,9 +235,6 @@ in " (:nxref :package :history-tree) " library, while most of the Nyxt-specific 
         (:p "See the " (:nxref :command 'nyxt/mode/download:list-downloads) " command and the "
             (:nxref :slot 'download-path :class-name 'buffer) " buffer slot documentation."))
 
-      (:nsection :title "Proxy and Tor"
-        (:p "See the " (:nxref :class-name 'nyxt/mode/proxy:proxy-mode) " documentation."))
-
       (:nsection :title "Blocker mode"
         (:p "This mode blocks access to websites related to specific hosts. To see
 all hosts being blocked, execute command " (:code "describe-variable") ", choose variable "
