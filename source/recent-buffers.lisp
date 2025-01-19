@@ -5,7 +5,7 @@
 
 (defun reopen-dead-buffer (buffer)
   (cond ((dead-buffer-p buffer)
-         (ffi-buffer-make buffer)
+         (ffi-buffer-initialize-foreign-object buffer)
          ;; Re-positions buffer in `recent-buffers'.
          (add-to-recent-buffers buffer)
          ;; Ensure buffer is seen by the `buffers' hash table.

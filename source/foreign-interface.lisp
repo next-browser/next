@@ -136,8 +136,14 @@ Usually setf-able."))
 Dispatches over `window' and classes inheriting from `buffer'.
 Usually setf-able."))
 
-(define-ffi-generic ffi-buffer-make (buffer)
+(define-ffi-generic ffi-buffer-make (browser)
+  (:method ((browser t))
+    (make-instance 'buffer))
   (:documentation "Return BUFFER and display it."))
+(define-ffi-generic ffi-buffer-initialize-foreign-object (buffer)
+  (:documentation "Create and configure the foreign object for a given buffer. This differs from
+`ffi-buffer-make' because it takes an existing buffer object and creates the
+foreign objects necessary for rendering the buffer."))
 (define-ffi-generic ffi-buffer-delete (buffer)
   (:documentation "Delete BUFFER."))
 
