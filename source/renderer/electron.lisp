@@ -129,6 +129,10 @@ Note that by changing the default value, modifier keys can be remapped."))
   ;; Needed for buffers whose HTML document is set via JS
   ;; (e.g. `status-buffer').
   (electron:load-url buffer "about:blank")
+  (initialize-listeners buffer)
+  (finalize-buffer buffer :extra-modes extra-modes :no-hook-p no-hook-p))
+
+(defmethod initialize-listeners ((buffer electron-buffer))
   (electron:add-listener buffer :before-input-event
                          (lambda (buffer event)
                            (on-signal-key-press-event buffer event)))
@@ -150,12 +154,15 @@ Note that by changing the default value, modifier keys can be remapped."))
                                (on-signal-load-finished buffer url))))
     (electron:add-listener (electron:web-contents buffer) :page-title-updated
                            (lambda (_) (declare (ignore _))
-                             (on-signal-notify-title buffer (ffi-buffer-title buffer)))))
-  (finalize-buffer buffer :extra-modes extra-modes :no-hook-p no-hook-p))
+                             (on-signal-notify-title buffer (ffi-buffer-title buffer))))))
 
-;; TODO Needed for reopen-dead-buffer.
-;; (defmethod ffi-buffer-make ((buffer electron-buffer))
-;;   (make-instance 'electron-buffer))
+(defmethod ffi-buffer-initialize-foreign-object ((buffer electron-buffer))
+  (electron::message
+   buffer
+   (format nil "~a = new WebContentsView(~a)"
+           (electron:remote-symbol buffer) (electron:options buffer)))
+  (electron:load-url buffer "about:blank")
+  (initialize-listeners buffer))
 
 (defmethod ffi-buffer-delete ((buffer electron-buffer))
   (nyxt::buffer-hide buffer)
