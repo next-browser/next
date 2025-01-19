@@ -761,7 +761,7 @@ with this scheme.")
                                       &allow-other-keys)
   "Make BUFFER with EXTRA-MODES.
 See `finalize-buffer'."
-  (ffi-buffer-make buffer)
+  (ffi-buffer-initialize-foreign-object buffer)
   (finalize-buffer buffer :extra-modes extra-modes :no-hook-p no-hook-p))
 
 (define-ffi-method ffi-buffer-url ((buffer gtk-buffer))
@@ -1183,7 +1183,7 @@ See `finalize-buffer'."
       (echo "[~a] ~a: ~a" (webkit:webkit-web-view-uri web-view) title body)
       t)))
 
-(define-ffi-method ffi-buffer-make ((buffer gtk-buffer))
+(define-ffi-method ffi-buffer-initialize-foreign-object ((buffer gtk-buffer))
   "Initialize BUFFER's GTK web view."
   (setf (gtk-object buffer)
         (if (prompt-buffer-p buffer)
