@@ -97,20 +97,21 @@ for which the `executable' slot is non-nil."
     ((and (password-interface buffer)
           (nyxt:has-method-p (password-interface (find-submode 'password-mode buffer))
                              #'password:save-password))
-     (let* ((password-name (prompt1 :prompt "Name for new password"
-                                    :input (or (quri:uri-domain (url (current-buffer)))
-                                               "")
-                                    :sources 'prompter:raw-source))
-            (new-password (prompt1 :prompt "New password (leave empty to generate)"
-                                   :sources 'prompter:raw-source
-                                   :height :fit-to-prompt
-                                   :invisible-input-p t))
-            (username (prompt1 :prompt "Username (can be empty)"
-                               :sources 'prompter:raw-source)))
-       (password:save-password (password-interface buffer)
-                               :username username
-                               :password-name password-name
-                               :password new-password)))
+     (with-password (password-interface buffer)
+       (let* ((password-name (prompt1 :prompt "Name for new password"
+                                      :input (or (quri:uri-domain (url (current-buffer)))
+                                                 "")
+                                      :sources 'prompter:raw-source))
+              (new-password (prompt1 :prompt "New password (leave empty to generate)"
+                                     :sources 'prompter:raw-source
+                                     :height :fit-to-prompt
+                                     :invisible-input-p t))
+              (username (prompt1 :prompt "Username (can be empty)"
+                                 :sources 'prompter:raw-source)))
+         (password:save-password (password-interface buffer)
+                                 :username username
+                                 :password-name password-name
+                                 :password new-password))))
     ((null (password-interface buffer))
      (echo-warning "No password manager found."))
     (t (echo-warning "Password manager ~s does not support saving passwords."
