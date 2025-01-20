@@ -56,8 +56,8 @@ listed and chosen from with the command `set-action-on-return' (bound to
        "M-keypadenter" 'set-action-on-return
        "C-return" 'toggle-mark-forwards
        "C-keypadenter" 'toggle-mark-forwards
-       "s-return" 'toggle-mark-forwards
-       "s-keypadenter" 'toggle-mark-forwards
+       "shift-return" 'toggle-mark-forwards
+       "shift-keypadenter" 'toggle-mark-forwards
        "C-j" 'run-action-on-current-suggestion
        "C-c C-j" 'set-action-on-current-suggestion
        "tab" 'insert-current-suggestion
@@ -93,7 +93,7 @@ listed and chosen from with the command `set-action-on-return' (bound to
        "C-M-n" 'scroll-other-buffer-down
        "C-M-p" 'scroll-other-buffer-up
        "C-M-v" 'scroll-page-down-other-buffer
-       "shift-C-M-v" 'scroll-page-up-other-buffer
+       "C-M-V" 'scroll-page-up-other-buffer
        "C-g" 'quit-prompt-buffer
        "C-e" 'move-end-of-input
        "C-a" 'move-start-of-input

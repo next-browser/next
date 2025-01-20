@@ -126,7 +126,7 @@ Important pieces of functionality are:
        "g g" 'scroll-to-top
        "G" 'scroll-to-bottom
        "C-b" 'scroll-page-up
-       "s-space" 'scroll-page-up
+       "shift-space" 'scroll-page-up
        "pageup" 'scroll-page-up
        "C-f" 'scroll-page-down
        "space" 'scroll-page-down

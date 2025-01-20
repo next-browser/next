@@ -33,8 +33,7 @@ This mode is a good candidate to be passed to `make-buffer'."
        "f1 s" 'describe-slot
        "f1 v" 'describe-variable
        "f11" 'toggle-fullscreen
-       "C-shift-y" 'nyxt/mode/download:list-downloads
-       "C-shift-Y" 'nyxt/mode/download:list-downloads
+       "C-Y" 'nyxt/mode/download:list-downloads
        "C-space" 'execute-command
        "C-M-space" 'execute-extended-command
        "C-shift-space" 'execute-predicted-command)
@@ -50,7 +49,6 @@ This mode is a good candidate to be passed to `make-buffer'."
        "C-pageup" 'switch-buffer-previous
        "C-w" 'delete-current-buffer
        "C-n" 'make-window
-       "C-shift-W" 'delete-current-window
        "C-W" 'delete-current-window
        "M-w" 'delete-window
        "M-c l" 'copy-url
