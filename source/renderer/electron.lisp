@@ -394,27 +394,33 @@ Note that by changing the default value, modifier keys can be remapped."))
   (when-let ((state input-event-modifier-state))
     (mapcar (lambda (modifier) (getf (modifier-plist buffer) modifier)) state)))
 
-(defun translate-key-string (key-string)
+(defun translate-code-string (code-string)
   "Return string representation of a keyval.
 Return nil when key must be discarded, e.g. for modifiers."
-  (match key-string
+  (match code-string
     ;; Compatibility layer between GDK keycode names and those of Browsers.
     ;; https://gitlab.gnome.org/GNOME/gtk/-/blob/main/gdk/gdkkeysyms.h
     ;; https://developer.mozilla.org/en-US/docs/Web/API/UI_Events/Keyboard_event_key_values
-    ("ControlLeft" nil)
-    ("ControlRight" nil)
-    ("ShiftLeft" nil)
-    ("ShiftRight" nil)
-    ("MetaLeft" nil)
-    ("MetaRight" nil)
-    ("AltLeft" nil)
-    ("AltRight" nil)
+    ((or "ControlLeft" "ControlRight"
+         "ShiftLeft" "ShiftRight"
+         "MetaLeft" "MetaRight"
+         "AltLeft" "AltRight")
+     nil)
     ("Minus" "hyphen")
     ("Equal" "=")
     ("Space" "space")
     ("Enter" "return")
     ("Escape" "escape")
     ("Tab" "tab")
+    ("Comma" ",")
+    ("Period" ".")
+    ("Slash" "/")
+    ("Semicolon" ";")
+    ("Quote" "'")
+    ("BracketLeft" "[")
+    ("BracketRight" "]")
+    ("Backslash" "\\")
+    ("Backquote" "`")
     ("Backspace" "backspace")
     ("ArrowUp" "up")
     ("ArrowDown" "down")
@@ -436,8 +442,9 @@ Return nil when key must be discarded, e.g. for modifiers."
     ("F10" "f10")
     ("F11" "f11")
     ("F12" "f12")
-    ((simple-string #\K #\e #\y value) (string-downcase (string value)))
-    (_ key-string)))
+    ((simple-string #\K #\e #\y key-value) (string-downcase (string key-value)))
+    ((simple-string #\D #\i #\g #\i #\t digit-value) (string digit-value))
+    (_ code-string)))
 
 (defmethod on-signal-key-press-event ((sender electron-buffer) event)
   (when (string= "keyDown" (assoc-value event :type))
@@ -445,7 +452,7 @@ Return nil when key must be discarded, e.g. for modifiers."
                                        (when (assoc-value event :control) :control)
                                        (when (assoc-value event :alt) :alt)
                                        (when (assoc-value event :meta) :meta))))
-          (key-string (translate-key-string (assoc-value event :code))))
+          (key-string (translate-code-string (assoc-value event :code))))
       (flet ((key () (keymaps:make-key :value key-string
                                        :modifiers (input-modifier-translator sender modifiers)
                                        :status :pressed)))

@@ -525,7 +525,8 @@ Return nil when key must be discarded, e.g. for modifiers."
     (if key-string
         (flet ((key ()
                  (keymaps:make-key :code keycode
-                                   :value key-string
+                                   :value (or (ignore-errors (keymaps:unshift key-string))
+                                              key-string)
                                    :modifiers modifiers
                                    :status :pressed)))
           (alex:appendf (key-stack sender)

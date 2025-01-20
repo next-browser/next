@@ -69,8 +69,7 @@ Experimental, may not always produce intuitive enough history trees.")
        "M-shift-right" 'history-forwards-query
        "C-M-right" 'history-forwards-all-query
        "C-M-left" 'history-all-query
-       "C-shift-h" 'history-all-query
-       "C-shift-H" 'history-all-query)
+       "C-H" 'history-all-query)
       keyscheme:emacs
       (list
        "C-b" 'history-backwards
